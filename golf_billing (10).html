@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>高爾夫教練計費系統</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f5f0; color: #222; font-size: 15px; }
+h1 { font-size: 20px; font-weight: 600; padding: 18px 20px 14px; background: #fff; border-bottom: 1px solid #e0e0e0; }
+h1 span { color: #4a7c59; }
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #e0e0e0; overflow-x: auto; gap: 0; }
+.tab { padding: 11px 15px; font-size: 13px; cursor: pointer; white-space: nowrap; color: #666; border-bottom: 2px solid transparent; flex-shrink: 0; }
+.tab.active { color: #4a7c59; border-bottom-color: #4a7c59; font-weight: 600; }
+.tab:hover:not(.active) { background: #f5f5f0; }
+.panel { display: none; padding: 16px 16px 40px; max-width: 660px; margin: 0 auto; }
+.panel.active { display: block; }
+.card { background: #fff; border-radius: 10px; padding: 18px; margin-bottom: 14px; border: 1px solid #e8e8e0; }
+.card-title { font-size: 12px; font-weight: 700; color: #4a7c59; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px; }
+label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+select, input[type="number"], input[type="text"] {
+  width: 100%; padding: 9px 12px; border: 1px solid #ddd; border-radius: 7px;
+  font-size: 14px; color: #222; background: #fafaf8; margin-bottom: 14px;
+  -webkit-appearance: none; appearance: none;
+}
+select:focus, input:focus { outline: none; border-color: #4a7c59; }
+.rg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.rb { flex: 1; min-width: 60px; padding: 8px 6px; border: 1.5px solid #ddd; border-radius: 7px;
+  text-align: center; cursor: pointer; font-size: 13px; color: #555; background: #fafaf8; transition: all 0.15s; }
+.rb.on { border-color: #4a7c59; background: #f0f7f3; color: #2d5e3a; font-weight: 600; }
+.btn { width: 100%; padding: 13px; background: #4a7c59; color: #fff; border: none; border-radius: 8px;
+  font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn:hover { background: #3d6b4b; }
+.result-card { background: #f0f7f3; border: 1px solid #c3deca; border-radius: 10px; padding: 16px; margin-top: 14px; }
+.amount { font-size: 30px; font-weight: 700; color: #2d5e3a; }
+.amount-label { font-size: 12px; color: #5a7d65; margin-bottom: 4px; }
+.breakdown { margin-top: 10px; font-size: 13px; color: #444; line-height: 1.9; border-top: 1px solid #c3deca; padding-top: 10px; }
+.notice-wrap { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 16px; margin-top: 12px; position: relative; }
+.notice-text { font-size: 14px; line-height: 2; color: #222; white-space: pre-wrap; padding-right: 60px; }
+.copy-btn { position: absolute; top: 12px; right: 12px; padding: 5px 12px; font-size: 12px;
+  background: #4a7c59; color: #fff; border: none; border-radius: 5px; cursor: pointer; }
+.copy-btn:hover { background: #3d6b4b; }
+.note-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #7a5a00; margin-bottom: 14px; }
+.err { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 7px; padding: 12px 14px; color: #c0392b; font-size: 13px; margin-top: 12px; }
+.loading { text-align: center; padding: 50px 20px; color: #888; }
+.coach-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-left: 4px; }
+.tag-en { background: #e3f0e8; color: #2d6b3a; }
+.tag-ft { background: #fff3cd; color: #7a5a00; }
+</style>
+</head>
+<body>
+
+<h1>⛳ <span>高爾夫</span>計費系統</h1>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('private',this)">私教課</div>
+  <div class="tab" onclick="showTab('plus',this)">Plus課程</div>
+  <div class="tab" onclick="showTab('other',this)">其他課程</div>
+  <div class="tab" onclick="showTab('golf9',this)">九洞課</div>
+  <div class="tab" onclick="showTab('swing',this)">揮桿基礎</div>
+  <div class="tab" onclick="showTab('refund',this)">退費/轉約</div>
+  <div class="tab" onclick="showTab('contract',this)">合約通知</div>
+  <div class="tab" onclick="showTab('help',this)">使用說明</div>
+</div>
+
+<!-- 私教課 -->
+<div id="tab-private" class="panel active">
+  <div class="card">
+    <div class="card-title">教練 & 課程</div>
+    <label>選擇教練</label>
+    <select id="p-coach" onchange="onPCoachChange()"><option value="">請選擇教練</option></select>
+    <div id="p-level-display" style="font-size:13px;color:#4a7c59;font-weight:600;margin-top:-10px;margin-bottom:12px;"></div>
+    <div id="p-steven-note" class="note-box" style="display:none">⚠️ Steven教練：一對二/三暫不安排；一對一十堂實為五堂 $20,000</div>
+    <label>課程類型</label>
+    <div class="rg" id="p-type-rg">
+      <div class="rb on" onclick="pickRb('p-type-rg',this,'1v1');toggleP4()">一對一</div>
+      <div class="rb" onclick="pickRb('p-type-rg',this,'1v2');toggleP4()">一對二</div>
+      <div class="rb" onclick="pickRb('p-type-rg',this,'1v3');toggleP4()">一對三</div>
+      <div class="rb" onclick="pickRb('p-type-rg',this,'1v4');toggleP4()">一對四+</div>
+    </div>
+    <input type="hidden" id="p-type" value="1v1">
+    <div id="p-4plus-fields" style="display:none">
+      <label>實際人數（4-10人）</label>
+      <input type="number" id="p-4plus-persons" min="4" max="10" value="4" placeholder="人數" oninput="onP4PersonsChange()">
+      <div id="p-4plus-range-display" style="font-size:13px;color:#4a7c59;font-weight:600;margin-top:-10px;margin-bottom:12px;"></div>
+    </div>
+    <label>堂數方案</label>
+    <div class="rg" id="p-sess-rg">
+      <div class="rb" onclick="pickRb('p-sess-rg',this,'single');togglePSess()">單堂</div>
+      <div class="rb on" onclick="pickRb('p-sess-rg',this,'10');togglePSess()">10堂優惠</div>
+    </div>
+    <input type="hidden" id="p-sess" value="10">
+    <div id="p-single-count-row" style="display:none">
+      <label>購買堂數（1-9堂）</label>
+      <input type="number" id="p-single-count" min="1" max="9" value="1" placeholder="堂數">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">付款資訊</div>
+    <label>上課地點</label>
+    <select id="p-location">
+      <option value="other">其他地點（台灣高爾夫經紀）</option>
+      <option value="qingnian">青年公園（安仕傑）</option>
+    </select>
+  </div>
+  <button class="btn" onclick="calcPrivate()">計算費用 & 產生通知</button>
+  <div id="p-out"></div>
+</div>
+
+<!-- Plus課程 -->
+<div id="tab-plus" class="panel">
+  <div class="card">
+    <div class="card-title">課程設定（10堂＋1次下場）</div>
+    <label>教練等級（不含Master）</label>
+    <div class="rg" id="plus-level-rg">
+      <div class="rb on" onclick="pickRb('plus-level-rg',this,'A')">A</div>
+      <div class="rb" onclick="pickRb('plus-level-rg',this,'AA')">AA</div>
+      <div class="rb" onclick="pickRb('plus-level-rg',this,'AAA')">AAA</div>
+    </div>
+    <input type="hidden" id="plus-level" value="A">
+    <label>上課類型</label>
+    <div class="rg" id="plus-person-rg">
+      <div class="rb on" onclick="pickRb('plus-person-rg',this,'1')">一對一</div>
+      <div class="rb" onclick="pickRb('plus-person-rg',this,'2')">一對二</div>
+      <div class="rb" onclick="pickRb('plus-person-rg',this,'3')">一對三</div>
+    </div>
+    <input type="hidden" id="plus-person" value="1">
+    <label>選擇教練</label>
+    <select id="plus-coach"><option value="">請選擇教練</option></select>
+  </div>
+  <div class="card">
+    <div class="card-title">付款資訊</div>
+    <label>上課地點</label>
+    <select id="plus-location">
+      <option value="other">其他地點（台灣高爾夫經紀）</option>
+      <option value="qingnian">青年公園（安仕傑）</option>
+    </select>
+  </div>
+  <button class="btn" onclick="calcPlus()">計算費用 & 產生通知</button>
+  <div id="plus-out"></div>
+</div>
+
+<!-- 其他課程 -->
+<div id="tab-other" class="panel">
+  <div class="card">
+    <div class="card-title">課程設定</div>
+    <label>課程類型</label>
+    <div class="rg" id="o-type-rg">
+      <div class="rb on" onclick="pickRb('o-type-rg',this,'group');toggleOtherFields()">成人團班</div>
+      <div class="rb" onclick="pickRb('o-type-rg',this,'shortgame');toggleOtherFields()">短推桿</div>
+    </div>
+    <input type="hidden" id="o-type" value="group">
+    <label>學員身份</label>
+    <div class="rg" id="o-member-rg">
+      <div class="rb on" onclick="pickRb('o-member-rg',this,'no')">一般</div>
+      <div class="rb" onclick="pickRb('o-member-rg',this,'yes')">會員（曾購私教）</div>
+    </div>
+    <input type="hidden" id="o-member" value="no">
+    <div id="o-group-fields">
+      <label>課程名稱</label>
+      <input type="text" id="o-name" value="Tiga高爾夫成人團班">
+      <label>期數/堂數說明</label>
+      <input type="text" id="o-period" value="一期6堂">
+      <label>開班通知日期</label>
+      <input type="text" id="o-notify-date" placeholder="例：3/13" onblur="autoFillWeekday('o-notify-date')">
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">付款資訊</div>
+    <label>上課地點</label>
+    <select id="o-location">
+      <option value="other">其他地點（台灣高爾夫經紀）</option>
+      <option value="qingnian">青年公園（安仕傑）</option>
+    </select>
+  </div>
+  <button class="btn" onclick="calcOther()">計算費用 & 產生通知</button>
+  <div id="o-out"></div>
+</div>
+
+<!-- 九洞課 -->
+<div id="tab-golf9" class="panel">
+  <div class="card">
+    <div class="card-title">課程類型</div>
+    <div class="rg" id="g9-type-rg">
+      <div class="rb on" onclick="pickRb('g9-type-rg',this,'personal');toggleG9()">個人班九洞</div>
+      <div class="rb" onclick="pickRb('g9-type-rg',this,'extra');toggleG9()">額外個人班九洞</div>
+    </div>
+    <input type="hidden" id="g9-type" value="personal">
+    <label>參加人數</label>
+    <input type="number" id="g9-persons" min="1" max="10" value="1" placeholder="人數" oninput="onG9PersonsChange()">
+    <div id="g9-persons-hint" style="font-size:12px;color:#888;margin-top:-10px;margin-bottom:12px;">九洞通常最多4人</div>
+    <label>下場日期</label>
+    <input type="text" id="g9-date" placeholder="例：4/15" onblur="autoFillWeekday('g9-date')">
+    <div id="g9-extra-fields" style="display:none">
+      <label>教練等級</label>
+      <div class="rg" id="g9-level-rg">
+        <div class="rb on" onclick="pickRb('g9-level-rg',this,'A');onG9LevelChange()">A</div>
+        <div class="rb" onclick="pickRb('g9-level-rg',this,'AA');onG9LevelChange()">AA</div>
+        <div class="rb" onclick="pickRb('g9-level-rg',this,'AAA');onG9LevelChange()">AAA</div>
+        <div class="rb" onclick="pickRb('g9-level-rg',this,'Master');onG9LevelChange()">Master</div>
+      </div>
+      <input type="hidden" id="g9-level" value="A">
+      <div id="g9-master-coach-row" style="display:none">
+        <label>選擇Master教練</label>
+        <div class="rg" id="g9-master-coach-rg">
+          <div class="rb on" onclick="pickRb('g9-master-coach-rg',this,'Steven');onG9PersonsChange()">Steven</div>
+          <div class="rb" onclick="pickRb('g9-master-coach-rg',this,'Max');onG9PersonsChange()">Max</div>
+          <div class="rb" onclick="pickRb('g9-master-coach-rg',this,'Hunter');onG9PersonsChange()">Hunter</div>
+        </div>
+        <input type="hidden" id="g9-master-coach" value="Steven">
+      </div>
+      <div id="g9-vtype-display" style="font-size:13px;color:#4a7c59;font-weight:600;margin-bottom:14px;"></div>
+      <div id="g9-master-warn" class="note-box" style="display:none">⚠️ Master等級不開放4人以上，目前人數已超過</div>
+    </div>
+  </div>
+  <button class="btn" onclick="calcGolf9()">計算費用 & 產生通知</button>
+  <div id="g9-out"></div>
+</div>
+
+<!-- 揮桿基礎 -->
+<div id="tab-swing" class="panel">
+  <div class="card">
+    <div class="card-title">揮桿基礎五堂課</div>
+    <div class="note-box">固定5堂，不分教練等級。一對一 $8,000 / 一對二 $11,000。課程期限3個月。</div>
+    <label>課程類型</label>
+    <div class="rg" id="sw-type-rg">
+      <div class="rb on" onclick="pickRb('sw-type-rg',this,'1v1')">一對一（$8,000）</div>
+      <div class="rb" onclick="pickRb('sw-type-rg',this,'1v2')">一對二（$11,000）</div>
+    </div>
+    <input type="hidden" id="sw-type" value="1v1">
+    <label>選擇教練</label>
+    <select id="sw-coach"><option value="">請選擇教練</option></select>
+  </div>
+  <div class="card">
+    <div class="card-title">付款資訊</div>
+    <label>上課地點</label>
+    <select id="sw-location">
+      <option value="other">其他地點（台灣高爾夫經紀）</option>
+      <option value="qingnian">青年公園（安仕傑）</option>
+    </select>
+  </div>
+  <button class="btn" onclick="calcSwing()">計算費用 & 產生通知</button>
+  <div id="sw-out"></div>
+</div>
+
+<!-- 退費/轉約 -->
+<div id="tab-refund" class="panel">
+  <div class="card">
+    <div class="card-title">類型</div>
+    <div class="rg" id="rf-type-rg">
+      <div class="rb on" onclick="pickRb('rf-type-rg',this,'refund');toggleRefundFields()">退費</div>
+      <div class="rb" onclick="pickRb('rf-type-rg',this,'transfer');toggleRefundFields()">轉約（換教練）</div>
+    </div>
+    <input type="hidden" id="rf-type" value="refund">
+  </div>
+  <div class="card">
+    <div class="card-title">課程資訊</div>
+    <label>購買總價（$）</label>
+    <input type="number" id="rf-price" placeholder="例：16000" oninput="autoFillDiscount()">
+    <div id="rf-refund-fields">
+      <label>單堂原價（$）</label>
+      <input type="number" id="rf-unit" placeholder="例：2000">
+    </div>
+    <div id="rf-transfer-fields" style="display:none">
+      <label>單堂優惠價（$）（自動帶入總價÷10，可手改）</label>
+      <input type="number" id="rf-unit-discount" placeholder="例：1600" oninput="this.dataset.userEdited='1'">
+    </div>
+    <label>已使用堂數</label>
+    <input type="number" id="rf-used" placeholder="例：3" min="0">
+  </div>
+  <button class="btn" onclick="calcRefund()">計算 & 產生通知</button>
+  <div id="rf-out"></div>
+</div>
+
+<!-- 合約通知 -->
+<div id="tab-contract" class="panel">
+  <div class="card">
+    <div class="card-title">合約資訊</div>
+    <label>教練姓名</label>
+    <select id="ct-coach"><option value="">請選擇教練</option></select>
+    <label>課程類型</label>
+    <div class="rg" id="ct-course-rg">
+      <div class="rb on" onclick="pickRb('ct-course-rg',this,'private');toggleCtFields()">私教課</div>
+      <div class="rb" onclick="pickRb('ct-course-rg',this,'swing');toggleCtFields()">揮桿基礎</div>
+      <div class="rb" onclick="pickRb('ct-course-rg',this,'plus');toggleCtFields()">Plus</div>
+    </div>
+    <input type="hidden" id="ct-course" value="private">
+    <div id="ct-private-fields">
+      <label>上課人數</label>
+      <div class="rg" id="ct-vtype-rg">
+        <div class="rb on" onclick="pickRb('ct-vtype-rg',this,'一對一')">一對一</div>
+        <div class="rb" onclick="pickRb('ct-vtype-rg',this,'一對二')">一對二</div>
+        <div class="rb" onclick="pickRb('ct-vtype-rg',this,'一對三')">一對三</div>
+      </div>
+      <input type="hidden" id="ct-vtype" value="一對一">
+      <label>堂數</label>
+      <input type="number" id="ct-sessions" value="10">
+    </div>
+    <div id="ct-swing-fields" style="display:none">
+      <label>上課人數</label>
+      <div class="rg" id="ct-sw-vtype-rg">
+        <div class="rb on" onclick="pickRb('ct-sw-vtype-rg',this,'一對一')">一對一</div>
+        <div class="rb" onclick="pickRb('ct-sw-vtype-rg',this,'一對二')">一對二</div>
+      </div>
+      <input type="hidden" id="ct-sw-vtype" value="一對一">
+    </div>
+    <div id="ct-plus-fields" style="display:none">
+      <label>上課人數</label>
+      <div class="rg" id="ct-plus-person-rg">
+        <div class="rb on" onclick="pickRb('ct-plus-person-rg',this,'一人')">一人</div>
+        <div class="rb" onclick="pickRb('ct-plus-person-rg',this,'兩人')">兩人</div>
+        <div class="rb" onclick="pickRb('ct-plus-person-rg',this,'三人')">三人</div>
+      </div>
+      <input type="hidden" id="ct-plus-person" value="一人">
+    </div>
+    <label>合約開始日期</label>
+    <input type="text" id="ct-start" placeholder="例：2026/04/10" value="">
+  </div>
+  <button class="btn" onclick="calcContract()">產生合約通知</button>
+  <div id="ct-out"></div>
+</div>
+
+<!-- 使用說明 -->
+<div id="tab-help" class="panel">
+  <div class="card">
+    <div class="card-title">基本操作</div>
+    <p style="font-size:14px;line-height:1.9;color:#444;">
+      選擇上方頁籤切換不同課程類型。每個頁面填好後按下綠色按鈕，即可看到費用計算結果和通知文字。通知文字右上角有「複製」按鈕，點一下即可複製貼到 LINE 或其他通訊軟體。
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title">各頁說明</div>
+    <div style="font-size:14px;line-height:2;color:#444;">
+      <p><strong style="color:#4a7c59;">私教課</strong>　選教練 → 課程類型（一對一/二/三）→ 堂數方案 → 地點</p>
+      <p style="font-size:12px;color:#888;margin-top:-6px;margin-bottom:8px;">預設10堂優惠。Steven教練一對二/三暫不安排；一對一十堂實為五堂。</p>
+      <p><strong style="color:#4a7c59;">一對四+</strong>　選等級 → 人數範圍（4-6人或7-10人）→ 堂數方案 → 地點</p>
+      <p style="font-size:12px;color:#888;margin-top:-6px;margin-bottom:8px;">Master等級僅開放4-6人。</p>
+      <p><strong style="color:#4a7c59;">Plus課程</strong>　10堂＋1次下場。選等級 → 人數 → 教練（選填）→ 地點</p>
+      <p><strong style="color:#4a7c59;">其他課程</strong>　成人團班或短推桿。選身份（一般/會員）→ 填課程資訊 → 地點</p>
+      <p style="font-size:12px;color:#888;margin-top:-6px;margin-bottom:8px;">會員指曾購買私教課的學員，享優惠價。</p>
+      <p><strong style="color:#4a7c59;">九洞課</strong>　個人班（扣原有私教課堂數）或額外個人班（另計教練費）</p>
+      <p style="font-size:12px;color:#888;margin-top:-6px;margin-bottom:8px;">下場日期輸入如「4/15」後離開欄位會自動補上星期幾。固定台灣高爾夫經紀帳號。</p>
+      <p><strong style="color:#4a7c59;">揮桿基礎</strong>　固定5堂，不分教練等級。一對一$8,000 / 一對二$11,000。期限3個月。</p>
+      <p><strong style="color:#4a7c59;">退費/轉約</strong>　退費需填購買總價、單堂原價、已使用堂數。轉約單堂優惠價自動帶入總價÷10，可手改。</p>
+      <p><strong style="color:#4a7c59;">合約通知</strong>　選教練、課程類型、堂數，開始日期預設今天，自動計算結束日期。</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">匯款帳號說明</div>
+    <div style="font-size:14px;line-height:2;color:#444;">
+      <p><strong style="color:#4a7c59;">安仕傑有限公司</strong>　青年公園教室上課時使用</p>
+      <p style="font-size:13px;color:#666;margin-bottom:8px;">彰化銀行(009) 復興分行　5258-86-036001-00</p>
+      <p><strong style="color:#4a7c59;">台灣高爾夫經紀事業股份有限公司</strong>　其他地點、九洞課、短推桿</p>
+      <p style="font-size:13px;color:#666;">彰化銀行(009) 復興分行　5258 01300360 00</p>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">教練標示說明</div>
+    <p style="font-size:14px;line-height:2;color:#444;">
+      教練選單中：<br>
+      ★ = 正職教練<br>
+      EN = 會英文
+    </p>
+  </div>
+</div>
+
+<script>
+const BANK_OTHER = `彰化銀行(009) 復興分行\n5258 01300360 00\n戶名：台灣高爾夫經紀事業股份有限公司`;
+const BANK_QY = `彰化銀行(009) 復興分行\n5258-86-036001-00\n戶名：安仕傑有限公司`;
+
+const PRIVATE_PRICE = {
+  Steven: { '1v1': { single: 5000, x10: 20000 }, '1v2': null, '1v3': null },
+  Max:    { '1v1': { single: 3000, x10: 22000 }, '1v2': { single: 3400, x10: 29000 }, '1v3': { single: 4200, x10: 36000 } },
+  Hunter: { '1v1': { single: 3000, x10: 24000 }, '1v2': { single: 4000, x10: 32000 }, '1v3': { single: 5000, x10: 40000 } },
+  AAA:    { '1v1': { single: 2500, x10: 21000 }, '1v2': { single: 3300, x10: 28000 }, '1v3': { single: 4200, x10: 36000 } },
+  AA:     { '1v1': { single: 2200, x10: 18000 }, '1v2': { single: 2900, x10: 24000 }, '1v3': { single: 3600, x10: 30000 } },
+  A:      { '1v1': { single: 2000, x10: 16000 }, '1v2': { single: 2600, x10: 21000 }, '1v3': { single: 3300, x10: 27000 } }
+};
+
+const GROUP4_PRICE = {
+  Master: { '4-6': { single: 5200, x10: 42000 }, '7-10': null },
+  AAA:    { '4-6': { single: 4400, x10: 37000 }, '7-10': { single: 5000, x10: 42000 } },
+  AA:     { '4-6': { single: 3900, x10: 32000 }, '7-10': { single: 4400, x10: 36000 } },
+  A:      { '4-6': { single: 3500, x10: 28000 }, '7-10': { single: 4000, x10: 32000 } }
+};
+
+const PLUS_PRICE = {
+  AAA: { '1': 24300, '2': 34600, '3': 45900 },
+  AA:  { '1': 21300, '2': 30600, '3': 39900 },
+  A:   { '1': 19300, '2': 27600, '3': 36900 }
+};
+
+const OTHER_PRICE = {
+  group:     { normal: 9500, member: 9000 },
+  shortgame: { normal: 1900, member: 1700 }
+};
+
+const SWING_PRICE = { '1v1': 8000, '1v2': 11000 };
+
+const G9_FIELD_FEE = 2000;
+const ADMIN_RATE = 0.1;
+
+const coaches = [
+  { zh:'翁士棻', en:'Steven',     level:'Master', fulltime:false, english:true  },
+  { zh:'謝旻軒', en:'Max',        level:'Master', fulltime:false, english:true  },
+  { zh:'劉旻煜', en:'Hunter',     level:'Master', fulltime:false, english:false },
+  { zh:'翁傳傑', en:'Jason',      level:'AAA',    fulltime:true,  english:false },
+  { zh:'張哲瑋', en:'Jerry',      level:'AAA',    fulltime:true,  english:false },
+  { zh:'林晟毓', en:'Jimmy',      level:'AAA',    fulltime:false, english:false },
+  { zh:'韓欣諺', en:'Eric',       level:'AAA',    fulltime:false, english:false },
+  { zh:'唐瑋安', en:'Jacqueline', level:'AA',     fulltime:true,  english:true  },
+  { zh:'李佳琳', en:'Linda',      level:'AA',     fulltime:true,  english:false },
+  { zh:'黃宣邑', en:'Sean',       level:'AA',     fulltime:true,  english:false },
+  { zh:'林煒傑', en:'Simon',      level:'AA',     fulltime:false, english:true  },
+  { zh:'謝佳彧', en:'Jaime',      level:'AA',     fulltime:false, english:true  },
+  { zh:'施柔羽', en:'Connie',     level:'AA',     fulltime:false, english:false },
+  { zh:'陳彥宇', en:'Rick',       level:'AA',     fulltime:false, english:false },
+  { zh:'林怡韻', en:'Cerita',     level:'AA',     fulltime:false, english:false },
+  { zh:'王人立', en:'Peter',      level:'AA',     fulltime:false, english:false },
+  { zh:'鄭永旭', en:'Andy鄭',     level:'AA',     fulltime:false, english:false },
+  { zh:'楊新宇', en:'Aton',       level:'A',      fulltime:false, english:true  },
+  { zh:'秦勉',   en:'Mein',       level:'A',      fulltime:false, english:true  },
+  { zh:'黃少驊', en:'Andy黃',     level:'A',      fulltime:false, english:false },
+];
+
+function populateCoachSelects() {
+  const selects = ['p-coach', 'plus-coach', 'sw-coach', 'ct-coach'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '<option value="">請選擇教練</option>';
+    coaches.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.en;
+      let label = `${c.zh}（${c.en}）`;
+      if (c.fulltime) label += ' ★';
+      if (c.english) label += ' EN';
+      opt.textContent = label;
+      sel.appendChild(opt);
+    });
+  });
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('ct-start').value = todayStr;
+}
+
+function autoFillWeekday(inputId) {
+  const el = document.getElementById(inputId);
+  let val = el.value.trim();
+  if (!val) return;
+  const weekdays = ['日','一','二','三','四','五','六'];
+  const already = /\([日一二三四五六]\)$/;
+  if (already.test(val)) return;
+  const match = val.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!match) return;
+  const m = parseInt(match[1]);
+  const d = parseInt(match[2]);
+  const year = new Date().getFullYear();
+  const date = new Date(year, m - 1, d);
+  if (isNaN(date.getTime())) return;
+  el.value = `${m}/${d}(${weekdays[date.getDay()]})`;
+}
+
+function autoFillDiscount() {
+  const price = parseInt(document.getElementById('rf-price').value) || 0;
+  const discountEl = document.getElementById('rf-unit-discount');
+  if (price > 0 && !discountEl.dataset.userEdited) {
+    discountEl.value = Math.round(price / 10);
+  }
+}
+
+function showTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+function pickRb(groupId, el, val) {
+  document.querySelectorAll('#' + groupId + ' .rb').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  const hiddenId = groupId.replace(/-rg$/, '');
+  const hidden = document.getElementById(hiddenId);
+  if (hidden) hidden.value = val;
+}
+
+function getBank(location) {
+  return location === 'qingnian' ? BANK_QY : BANK_OTHER;
+}
+
+function getDeadline() {
+  const today = new Date();
+  let d = new Date(today);
+  d.setDate(d.getDate() + 2);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const weekdays = ['日','一','二','三','四','五','六'];
+  return `${m}/${day}(${weekdays[d.getDay()]})`;
+}
+
+function fmt(n) { return n.toLocaleString(); }
+
+function showResult(outId, html) {
+  document.getElementById(outId).innerHTML = html;
+}
+
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.innerText).then(() => {
+    const btn = el.parentElement.querySelector('.copy-btn');
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent = '複製', 1500);
+  });
+}
+
+function noticeWrap(id, text) {
+  return `<div class="notice-wrap"><button class="copy-btn" onclick="copyText('${id}')">複製</button><div class="notice-text" id="${id}">${text}</div></div>`;
+}
+
+function resultCard(amountLabel, amount, breakdown) {
+  return `<div class="result-card"><div class="amount-label">${amountLabel}</div><div class="amount">$${fmt(amount)}</div>${breakdown ? '<div class="breakdown">' + breakdown + '</div>' : ''}</div>`;
+}
+
+// ===== 私教課 =====
+function onPCoachChange() {
+  const val = document.getElementById('p-coach').value;
+  document.getElementById('p-steven-note').style.display = val === 'Steven' ? 'block' : 'none';
+  const coach = coaches.find(c => c.en === val);
+  const levelDisplay = document.getElementById('p-level-display');
+  if (coach) {
+    levelDisplay.textContent = `等級：${coach.level}`;
+  } else {
+    levelDisplay.textContent = '';
+  }
+}
+
+function toggleP4() {
+  const type = document.getElementById('p-type').value;
+  document.getElementById('p-4plus-fields').style.display = type === '1v4' ? 'block' : 'none';
+  if (type === '1v4') onP4PersonsChange();
+}
+
+function togglePSess() {
+  const sess = document.getElementById('p-sess').value;
+  document.getElementById('p-single-count-row').style.display = sess === 'single' ? 'block' : 'none';
+}
+
+function onP4PersonsChange() {
+  const persons = parseInt(document.getElementById('p-4plus-persons').value) || 4;
+  const range = persons <= 6 ? '4-6人' : '7-10人';
+  document.getElementById('p-4plus-range-display').textContent = `→ 價格區間：${range}`;
+}
+
+function calcPrivate() {
+  const coachEn = document.getElementById('p-coach').value;
+  if (!coachEn) return showResult('p-out', '<div class="err">請選擇教練</div>');
+  const coach = coaches.find(c => c.en === coachEn);
+  const type = document.getElementById('p-type').value;
+  const sess = document.getElementById('p-sess').value;
+  const location = document.getElementById('p-location').value;
+  const deadline = getDeadline();
+  const bank = getBank(location);
+
+  if (type === '1v4') {
+    const persons = parseInt(document.getElementById('p-4plus-persons').value) || 4;
+    if (persons < 4) return showResult('p-out', '<div class="err">一對四+人數至少4人</div>');
+    const size = persons <= 6 ? '4-6' : '7-10';
+    const priceKey = ['Steven','Max','Hunter'].includes(coachEn) ? 'Master' : coach.level;
+    if (priceKey === 'Master' && size === '7-10') {
+      return showResult('p-out', '<div class="err">Master等級不開放7-10人</div>');
+    }
+    const p = GROUP4_PRICE[priceKey] ? GROUP4_PRICE[priceKey][size] : null;
+    if (!p) return showResult('p-out', '<div class="err">此組合無對應價格</div>');
+    const count = sess === 'single' ? (parseInt(document.getElementById('p-single-count').value) || 1) : 1;
+    const amount = sess === 'single' ? p.single * count : p.x10;
+    const sessLabel = sess === 'single' ? `單堂×${count}堂` : '十堂';
+    const noticeText = `提供繳費資訊給您：\n${coachEn}教練一對${persons}，\n單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n*請於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您` + (sess === 'single' ? `\n\n您可先匯單堂價格，如果試上當日確定續十堂並匯款仍可享十堂優惠價格，當日就視為十堂課的第一堂` : '');
+    const breakdown = `教練：${coach.zh}（${coachEn}）｜等級：${coach.level}<br>課程：一對${persons}（${size}人區間）｜方案：${sessLabel}`;
+    let html = resultCard('課程費用', amount, breakdown);
+    html += noticeWrap('p-notice', noticeText);
+    return showResult('p-out', html);
+  }
+
+  let priceKey = coachEn;
+  if (!['Steven','Max','Hunter'].includes(coachEn)) priceKey = coach.level;
+
+  const priceData = PRIVATE_PRICE[priceKey];
+  if (!priceData || !priceData[type]) {
+    return showResult('p-out', '<div class="err">此教練暫不提供該課程類型</div>');
+  }
+  const p = priceData[type];
+  const count = sess === 'single' ? (parseInt(document.getElementById('p-single-count').value) || 1) : 1;
+  const amount = sess === 'single' ? p.single * count : p.x10;
+  const typeLabel = { '1v1':'一對一', '1v2':'一對二', '1v3':'一對三' }[type];
+  const sessLabel = sess === 'single' ? `單堂×${count}堂` : (coachEn === 'Steven' ? '五堂' : '十堂');
+
+  let noticeText = `提供繳費資訊給您：\n${coachEn}教練${typeLabel}，\n`;
+  if (sess === 'single') {
+    noticeText += `單堂$${fmt(p.single)}×${count}堂 = $${fmt(amount)}，\n`;
+  } else if (coachEn === 'Steven') {
+    noticeText += `單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
+  } else {
+    noticeText += `單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
+  }
+  noticeText += `(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n*請於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+  if (sess === 'single' && count === 1) {
+    noticeText += `\n\n您可先匯單堂價格，如果試上當日確定續十堂並匯款仍可享十堂優惠價格，當日就視為十堂課的第一堂`;
+  }
+
+  const breakdown = `教練：${coach.zh}（${coachEn}）｜等級：${coach.level}<br>課程：${typeLabel}｜方案：${sessLabel}`;
+  let html = resultCard('課程費用', amount, breakdown);
+  html += noticeWrap('p-notice', noticeText);
+  showResult('p-out', html);
+}
+
+// ===== 一對四+ =====
+function checkG4Master() {
+  const isMaster = document.getElementById('g4-level').value === 'Master';
+  document.getElementById('g4-master-note').style.display = isMaster ? 'block' : 'none';
+  if (isMaster) {
+    pickRb('g4-size-rg', document.querySelector('#g4-size-rg .rb'), '4-6');
+    document.getElementById('g4-size-710').style.opacity = '0.4';
+    document.getElementById('g4-size-710').style.pointerEvents = 'none';
+  } else {
+    document.getElementById('g4-size-710').style.opacity = '1';
+    document.getElementById('g4-size-710').style.pointerEvents = '';
+  }
+}
+
+function calcGroup4() {
+  const level = document.getElementById('g4-level').value;
+  const size = document.getElementById('g4-size').value;
+  const sess = document.getElementById('g4-sess').value;
+  const location = document.getElementById('g4-location').value;
+
+  if (level === 'Master' && size === '7-10') {
+    return showResult('g4-out', '<div class="err">Master等級不開放7-10人</div>');
+  }
+  const p = GROUP4_PRICE[level][size];
+  if (!p) return showResult('g4-out', '<div class="err">此組合無對應價格</div>');
+  const amount = sess === 'single' ? p.single : p.x10;
+  const sessLabel = sess === 'single' ? '單堂' : '十堂';
+  const deadline = getDeadline();
+  const bank = getBank(location);
+
+  const noticeText = `提供繳費資訊給您：\n一對四+團體課（${size}人）${level}等級，\n${sessLabel}$${fmt(amount)}，\n(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n*請於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您` + (sess === 'single' ? `\n\n您可先匯單堂價格，如果試上當日確定續十堂並匯款仍可享十堂優惠價格，當日就視為十堂課的第一堂` : '');
+
+  const breakdown = `等級：${level}｜人數：${size}人｜方案：${sessLabel}`;
+  let html = resultCard('課程費用', amount, breakdown);
+  html += noticeWrap('g4-notice', noticeText);
+  showResult('g4-out', html);
+}
+
+// ===== Plus課程 =====
+function calcPlus() {
+  const level = document.getElementById('plus-level').value;
+  const person = document.getElementById('plus-person').value;
+  const coachEn = document.getElementById('plus-coach').value;
+  const location = document.getElementById('plus-location').value;
+
+  const amount = PLUS_PRICE[level][person];
+  const typeLabel = { '1':'一對一', '2':'一對二', '3':'一對三' }[person];
+  const deadline = getDeadline();
+  const bank = getBank(location);
+  const coachStr = coachEn ? `${coachEn}教練` : '';
+
+  const noticeText = `提供繳費資訊給您：\n${coachStr}${typeLabel}私人課程Plus+（10堂＋1次下場），\n$${fmt(amount)}，\n(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n*請於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+
+  const breakdown = `等級：${level}｜課程：${typeLabel}`;
+  let html = resultCard('課程費用', amount, breakdown);
+  html += noticeWrap('plus-notice', noticeText);
+  showResult('plus-out', html);
+}
+
+// ===== 其他課程 =====
+function toggleOtherFields() {
+  const type = document.getElementById('o-type').value;
+  document.getElementById('o-group-fields').style.display = type === 'group' ? 'block' : 'none';
+}
+
+function calcOther() {
+  const type = document.getElementById('o-type').value;
+  const member = document.getElementById('o-member').value === 'yes';
+  const location = document.getElementById('o-location').value;
+  const bank = getBank(location);
+  const deadline = getDeadline();
+  const p = OTHER_PRICE[type];
+  const amount = member ? p.member : p.normal;
+
+  let noticeText = '';
+  if (type === 'group') {
+    const name = document.getElementById('o-name').value || 'Tiga高爾夫成人團班';
+    const period = document.getElementById('o-period').value || '一期';
+    const notifyDate = document.getElementById('o-notify-date').value || '';
+    noticeText = `提供繳費資訊給您：\n${name}${period}\n$${fmt(amount)}\n(課程費用不含球資)\n相關課程資訊請參閱課程須知\n${bank}\n*於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+    if (notifyDate) noticeText += `\n最終是否開班等相關課程資訊會於${notifyDate}通知您`;
+  } else {
+    noticeText = `提供繳費資訊給您：\n短推桿課程\n$${fmt(amount)}\n(課程費用不含球資)\n相關課程資訊請參閱課程須知\n${bank}\n*於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+  }
+
+  let html = resultCard('課程費用', amount, `課程：${type === 'group' ? '成人團班' : '短推桿'}｜身份：${member ? '會員' : '一般'}`);
+  html += noticeWrap('o-notice', noticeText);
+  showResult('o-out', html);
+}
+
+// ===== 九洞課 =====
+function toggleG9() {
+  const type = document.getElementById('g9-type').value;
+  document.getElementById('g9-extra-fields').style.display = type === 'extra' ? 'block' : 'none';
+  onG9PersonsChange();
+}
+
+function onG9LevelChange() {
+  const level = document.getElementById('g9-level').value;
+  document.getElementById('g9-master-coach-row').style.display = level === 'Master' ? 'block' : 'none';
+  onG9PersonsChange();
+}
+
+function onG9PersonsChange() {
+  const type = document.getElementById('g9-type').value;
+  if (type !== 'extra') return;
+  const persons = parseInt(document.getElementById('g9-persons').value) || 1;
+  const level = document.getElementById('g9-level').value;
+  const vtypeMap = { 1:'一對一', 2:'一對二', 3:'一對三' };
+  const vtypeLabel = persons >= 4 ? '一對四+' : (vtypeMap[persons] || '一對一');
+  const displayEl = document.getElementById('g9-vtype-display');
+  if (displayEl) displayEl.textContent = `→ 課程類型：${vtypeLabel}`;
+  const warnEl = document.getElementById('g9-master-warn');
+  if (warnEl) warnEl.style.display = (level === 'Master' && persons >= 4) ? 'block' : 'none';
+}
+
+function calcGolf9() {
+  const type = document.getElementById('g9-type').value;
+  const persons = parseInt(document.getElementById('g9-persons').value) || 1;
+  const date = document.getElementById('g9-date').value;
+  if (!date) return showResult('g9-out', '<div class="err">請填寫下場日期</div>');
+
+  const fieldFee = persons * G9_FIELD_FEE;
+  let totalAmount = fieldFee;
+  let breakdown = `果嶺費：$${fmt(G9_FIELD_FEE)}/人 × ${persons}人 = $${fmt(fieldFee)}`;
+  let coachFeeStr = '';
+
+  if (type === 'extra') {
+    const level = document.getElementById('g9-level').value;
+    const vtype = persons >= 4 ? '1v4' : (persons === 3 ? '1v3' : persons === 2 ? '1v2' : '1v1');
+    const vtypeLabel = persons >= 4 ? '一對四+' : { '1v1':'一對一', '1v2':'一對二', '1v3':'一對三' }[vtype];
+
+    if (level === 'Master' && persons >= 4) {
+      return showResult('g9-out', '<div class="err">⚠️ Master等級不開放4人以上，請確認人數或更換教練等級</div>');
+    }
+
+    let priceKey = level;
+    if (level === 'Master') {
+      priceKey = document.getElementById('g9-master-coach').value;
+    }
+
+    let unitPrice = 0;
+    if (vtype === '1v4') {
+      unitPrice = GROUP4_PRICE[level] ? GROUP4_PRICE[level]['4-6'].single : 0;
+    } else {
+      unitPrice = PRIVATE_PRICE[priceKey] && PRIVATE_PRICE[priceKey][vtype] ? PRIVATE_PRICE[priceKey][vtype].single : 0;
+    }
+    const coachFee = unitPrice * 3;
+    totalAmount += coachFee;
+    coachFeeStr = `，教練費$${fmt(coachFee)}`;
+    breakdown += `<br>教練費：$${fmt(unitPrice)}（${vtypeLabel}單堂）× 3堂 = $${fmt(coachFee)}<br>合計：$${fmt(totalAmount)}`;
+  }
+
+  const noticeText = `您好：安排${date}@美麗華九洞下場，會預收九洞下場費用$${fmt(totalAmount)}元（${persons}人果嶺費$${fmt(fieldFee)}${coachFeeStr}），再請於這兩日撥空匯款，以確保下場時間預約，謝謝您！\n彰化銀行(009) 復興分行\n5258 01300360 00\n戶名：台灣高爾夫經紀事業股份有限公司\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳`;
+
+  let html = resultCard('預收費用', totalAmount, breakdown);
+  html += noticeWrap('g9-notice', noticeText);
+  showResult('g9-out', html);
+}
+
+// ===== 揮桿基礎 =====
+function calcSwing() {
+  const type = document.getElementById('sw-type').value;
+  const coachEn = document.getElementById('sw-coach').value;
+  const location = document.getElementById('sw-location').value;
+  const amount = SWING_PRICE[type];
+  const typeLabel = type === '1v1' ? '一對一' : '一對二';
+  const deadline = getDeadline();
+  const bank = getBank(location);
+  const coachStr = coachEn ? `${coachEn}教練` : '';
+
+  const noticeText = `提供您課程匯款資訊：\n${coachStr}揮桿基礎課程五堂課 ${typeLabel}$${fmt(amount)}\n(課程費用不含球資)\n課程期限為3個月，相關課程資訊請參閱課程須知。\n${bank}\n*於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+
+  let html = resultCard('課程費用', amount, `課程類型：${typeLabel}｜固定5堂`);
+  html += noticeWrap('sw-notice', noticeText);
+  showResult('sw-out', html);
+}
+
+// ===== 退費/轉約 =====
+function toggleRefundFields() {
+  const type = document.getElementById('rf-type').value;
+  document.getElementById('rf-refund-fields').style.display = type === 'refund' ? 'block' : 'none';
+  document.getElementById('rf-transfer-fields').style.display = type === 'transfer' ? 'block' : 'none';
+  if (type === 'transfer') {
+    const discountEl = document.getElementById('rf-unit-discount');
+    delete discountEl.dataset.userEdited;
+    autoFillDiscount();
+  }
+}
+
+function calcRefund() {
+  const type = document.getElementById('rf-type').value;
+  const price = parseInt(document.getElementById('rf-price').value) || 0;
+  const used = parseInt(document.getElementById('rf-used').value) || 0;
+  if (!price) return showResult('rf-out', '<div class="err">請填寫購買總價</div>');
+
+  let result = 0, noticeText = '', breakdown = '';
+
+  if (type === 'refund') {
+    const unit = parseInt(document.getElementById('rf-unit').value) || 0;
+    if (!unit) return showResult('rf-out', '<div class="err">請填寫單堂原價</div>');
+    const adminFee = Math.round(price * ADMIN_RATE);
+    const usedFee = unit * used;
+    result = price - adminFee - usedFee;
+    breakdown = `$${fmt(price)} - $${fmt(adminFee)}（行政費10%）- $${fmt(unit)} × ${used}堂 = $${fmt(result)}`;
+    noticeText = `您好，經查詢後您目前原課程為$${fmt(price)}，已使用${used}堂，扣除10%行政費用和使用堂數，計算如下\n$${fmt(price)}-$${fmt(adminFee)}-$${fmt(unit)}x${used}= $${fmt(result)}\n共退款$${fmt(result)}\n以上若確認無誤再麻煩您提供存摺封面（須包含銀行、分行名稱、戶名和帳號），謝謝您`;
+  } else {
+    const unitDiscount = parseInt(document.getElementById('rf-unit-discount').value) || 0;
+    if (!unitDiscount) return showResult('rf-out', '<div class="err">請填寫單堂優惠價</div>');
+    const usedFee = unitDiscount * used;
+    result = price - usedFee;
+    breakdown = `$${fmt(price)} - $${fmt(unitDiscount)} × ${used}堂 = $${fmt(result)}`;
+    noticeText = `您好，經查詢後您目前原課程為$${fmt(price)}，已使用${used}堂，以優惠價格計算並扣除使用堂數，計算如下\n$${fmt(price)}-$${fmt(unitDiscount)}x${used}= $${fmt(result)}\n結餘$${fmt(result)}\n以上若確認無誤再麻煩您提供存摺封面（須包含銀行、分行名稱、戶名和帳號），謝謝您`;
+  }
+
+  const label = type === 'refund' ? '退款金額' : '轉約結餘';
+  let html = resultCard(label, result, breakdown);
+  html += noticeWrap('rf-notice', noticeText);
+  showResult('rf-out', html);
+}
+
+// ===== 合約通知 =====
+function toggleCtFields() {
+  const course = document.getElementById('ct-course').value;
+  document.getElementById('ct-private-fields').style.display = course === 'private' ? 'block' : 'none';
+  document.getElementById('ct-swing-fields').style.display = course === 'swing' ? 'block' : 'none';
+  document.getElementById('ct-plus-fields').style.display = course === 'plus' ? 'block' : 'none';
+}
+
+function addDays(dateStr, days) {
+  const parts = dateStr.split('/');
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function calcContract() {
+  const coachEn = document.getElementById('ct-coach').value;
+  const course = document.getElementById('ct-course').value;
+  const startStr = document.getElementById('ct-start').value;
+  if (!coachEn) return showResult('ct-out', '<div class="err">請選擇教練</div>');
+  if (!startStr) return showResult('ct-out', '<div class="err">請填寫合約開始日期</div>');
+
+  const coach = coaches.find(c => c.en === coachEn);
+  let days = 180, courseLabel = '', endStr = '';
+
+  if (course === 'swing') {
+    days = 90;
+    const vtype = document.getElementById('ct-sw-vtype').value;
+    courseLabel = `揮桿基礎課程五堂課 ${vtype}`;
+  } else if (course === 'plus') {
+    const person = document.getElementById('ct-plus-person').value;
+    courseLabel = `私人課程Plus+ ${person}`;
+  } else {
+    const vtype = document.getElementById('ct-vtype').value;
+    const sessions = document.getElementById('ct-sessions').value || '10';
+    courseLabel = `${vtype}私人課程${sessions}堂`;
+  }
+
+  endStr = addDays(startStr, days - 1);
+
+  const noticeText = `${coachEn}教練${courseLabel}合約已建立，\n提醒此份合約課程期限為${days === 90 ? '3' : '6'}個月(${startStr}-${endStr})\n再麻煩留意並於期限內使用完畢。\n*若課程期限內未上完可以向行政申請展延`;
+
+  let html = `<div class="result-card"><div class="amount-label">合約期限</div><div class="amount" style="font-size:20px">${startStr} ～ ${endStr}</div><div class="breakdown">教練：${coach.zh}（${coachEn}）｜${courseLabel}</div></div>`;
+  html += noticeWrap('ct-notice', noticeText);
+  showResult('ct-out', html);
+}
+
+function autoFillWeekday(inputId) {
+  const el = document.getElementById(inputId);
+  let val = el.value.trim();
+  if (!val) return;
+  if (/\(.\)/.test(val)) return;
+  const match = val.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (!match) return;
+  const year = new Date().getFullYear();
+  const d = new Date(year, parseInt(match[1]) - 1, parseInt(match[2]));
+  if (isNaN(d.getTime())) return;
+  const weekdays = ['日','一','二','三','四','五','六'];
+  el.value = `${match[1]}/${match[2]}(${weekdays[d.getDay()]})`;
+}
+
+function autoFillDiscount() {
+  const price = parseInt(document.getElementById('rf-price').value) || 0;
+  const discountEl = document.getElementById('rf-unit-discount');
+  if (price > 0 && discountEl && !discountEl._userEdited) {
+    discountEl.value = Math.round(price / 10);
+  }
+}
+
+function initDefaults() {
+  const today = new Date();
+  const y = today.getFullYear();
+  const m = String(today.getMonth() + 1).padStart(2, '0');
+  const d = String(today.getDate()).padStart(2, '0');
+  document.getElementById('ct-start').value = `${y}/${m}/${d}`;
+
+  const discountEl = document.getElementById('rf-unit-discount');
+  discountEl.addEventListener('input', () => { discountEl._userEdited = true; });
+}
+
+populateCoachSelects();
+initDefaults();
+</script>
+</body>
+</html>
