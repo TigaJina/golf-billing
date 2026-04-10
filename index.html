@@ -533,7 +533,10 @@ function copyText(id) {
 }
 
 function noticeWrap(id, text) {
-  return `<div class="notice-wrap"><button class="copy-btn" onclick="copyText('${id}')">複製</button><div class="notice-text" id="${id}">${text}</div></div>`;
+  const colored = text
+    .replace(/戶名：安仕傑有限公司/g, '<strong style="color:#2d5e3a;">戶名：安仕傑有限公司</strong>')
+    .replace(/戶名：台灣高爾夫經紀事業股份有限公司/g, '<strong style="color:#8b1a1a;">戶名：台灣高爾夫經紀事業股份有限公司</strong>');
+  return `<div class="notice-wrap"><button class="copy-btn" onclick="copyText('${id}')">複製</button><div class="notice-text" id="${id}">${colored}</div></div>`;
 }
 
 function resultCard(amountLabel, amount, breakdown) {
