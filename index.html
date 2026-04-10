@@ -457,35 +457,11 @@ function populateCoachSelects() {
       sel.appendChild(opt);
     });
   });
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
-  document.getElementById('ct-start').value = todayStr;
 }
 
-function autoFillWeekday(inputId) {
-  const el = document.getElementById(inputId);
-  let val = el.value.trim();
-  if (!val) return;
-  const weekdays = ['日','一','二','三','四','五','六'];
-  const already = /\([日一二三四五六]\)$/;
-  if (already.test(val)) return;
-  const match = val.match(/^(\d{1,2})\/(\d{1,2})$/);
-  if (!match) return;
-  const m = parseInt(match[1]);
-  const d = parseInt(match[2]);
-  const year = new Date().getFullYear();
-  const date = new Date(year, m - 1, d);
-  if (isNaN(date.getTime())) return;
-  el.value = `${m}/${d}(${weekdays[date.getDay()]})`;
-}
 
-function autoFillDiscount() {
-  const price = parseInt(document.getElementById('rf-price').value) || 0;
-  const discountEl = document.getElementById('rf-unit-discount');
-  if (price > 0 && !discountEl.dataset.userEdited) {
-    discountEl.value = Math.round(price / 10);
-  }
-}
+
+
 
 function showTab(name, el) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -617,7 +593,13 @@ function calcPrivate() {
   const sessLabel = sess === 'single' ? `單堂×${count}堂` : (coachEn === 'Steven' ? '五堂' : '十堂');
 
   let noticeText = `提供繳費資訊給您：\n${coachEn}教練${typeLabel}，\n`;
-  if (sess === 'single') {
+  if (sess === 'single' && count === 1) {
+    if (coachEn === 'Steven') {
+      noticeText += `單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
+    } else {
+      noticeText += `單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
+    }
+  } else if (sess === 'single' && count > 1) {
     noticeText += `單堂$${fmt(p.single)}×${count}堂 = $${fmt(amount)}，\n`;
   } else if (coachEn === 'Steven') {
     noticeText += `單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
@@ -633,44 +615,6 @@ function calcPrivate() {
   let html = resultCard('課程費用', amount, breakdown);
   html += noticeWrap('p-notice', noticeText);
   showResult('p-out', html);
-}
-
-// ===== 一對四+ =====
-function checkG4Master() {
-  const isMaster = document.getElementById('g4-level').value === 'Master';
-  document.getElementById('g4-master-note').style.display = isMaster ? 'block' : 'none';
-  if (isMaster) {
-    pickRb('g4-size-rg', document.querySelector('#g4-size-rg .rb'), '4-6');
-    document.getElementById('g4-size-710').style.opacity = '0.4';
-    document.getElementById('g4-size-710').style.pointerEvents = 'none';
-  } else {
-    document.getElementById('g4-size-710').style.opacity = '1';
-    document.getElementById('g4-size-710').style.pointerEvents = '';
-  }
-}
-
-function calcGroup4() {
-  const level = document.getElementById('g4-level').value;
-  const size = document.getElementById('g4-size').value;
-  const sess = document.getElementById('g4-sess').value;
-  const location = document.getElementById('g4-location').value;
-
-  if (level === 'Master' && size === '7-10') {
-    return showResult('g4-out', '<div class="err">Master等級不開放7-10人</div>');
-  }
-  const p = GROUP4_PRICE[level][size];
-  if (!p) return showResult('g4-out', '<div class="err">此組合無對應價格</div>');
-  const amount = sess === 'single' ? p.single : p.x10;
-  const sessLabel = sess === 'single' ? '單堂' : '十堂';
-  const deadline = getDeadline();
-  const bank = getBank(location);
-
-  const noticeText = `提供繳費資訊給您：\n一對四+團體課（${size}人）${level}等級，\n${sessLabel}$${fmt(amount)}，\n(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n*請於${deadline}前完成匯款\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您` + (sess === 'single' ? `\n\n您可先匯單堂價格，如果試上當日確定續十堂並匯款仍可享十堂優惠價格，當日就視為十堂課的第一堂` : '');
-
-  const breakdown = `等級：${level}｜人數：${size}人｜方案：${sessLabel}`;
-  let html = resultCard('課程費用', amount, breakdown);
-  html += noticeWrap('g4-notice', noticeText);
-  showResult('g4-out', html);
 }
 
 // ===== Plus課程 =====
