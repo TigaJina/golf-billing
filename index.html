@@ -511,8 +511,10 @@ function copyText(id) {
 function noticeWrap(id, text) {
   const colored = text
     .replace(/戶名：安仕傑有限公司/g, '<strong style="color:#2d5e3a;">戶名：安仕傑有限公司</strong>')
-    .replace(/戶名：台灣高爾夫經紀事業股份有限公司/g, '<strong style="color:#8b1a1a;">戶名：台灣高爾夫經紀事業股份有限公司</strong>');
-  return `<div class="notice-wrap"><button class="copy-btn" onclick="copyText('${id}')">複製</button><div class="notice-text" id="${id}">${colored}</div></div>`;
+    .replace(/戶名：台灣高爾夫經紀事業股份有限公司/g, '<strong style="color:#8b1a1a;">戶名：台灣高爾夫經紀事業股份有限公司</strong>')
+    .replace(/(\*請於.+?前完成匯款)/g, '<strong>$1</strong>');
+  const warning = `<div style="font-size:12px;color:#b45309;background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;padding:8px 12px;margin-bottom:8px;">⚠️ 請注意繳費日期是否在上課日期之前</div>`;
+  return `<div class="notice-wrap">${warning}<button class="copy-btn" onclick="copyText('${id}')">複製</button><div class="notice-text" id="${id}">${colored}</div></div>`;
 }
 
 function resultCard(amountLabel, amount, breakdown) {
