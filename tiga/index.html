@@ -357,40 +357,67 @@
     return loc;
   }
 
-  // 貼上模式：地點辨識
+  // 貼上模式：地點辨識（長關鍵字優先，避免「青」誤中「青年公園」前先配對）
   const LOC_MAP = [
-    { keys: ['青年公園', '青年'], loc: '青年' },
-    { keys: ['大新店', '新店'], loc: '新店' },
-    { keys: ['益莊'], loc: '益莊' },
+    { keys: ['青年公園', '青年', '青'], loc: '青年' },
+    { keys: ['大新店', '新店', '新'], loc: '新店' },
+    { keys: ['益莊', '益'], loc: '益莊' },
     { keys: ['美麗華'], loc: '美麗華' },
   ];
 
   function detectLoc(str) {
+    // 移除時間數字區段再比對，避免數字裡的字誤判
+    const cleaned = str.replace(/\d{1,2}[:：]\d{2}/g, '').replace(/\d{1,2}/g, '');
     for (const { keys, loc } of LOC_MAP) {
-      if (keys.some(k => str.includes(k))) return loc;
+      if (keys.some(k => cleaned.includes(k))) return loc;
     }
     return null;
   }
 
+  // 中文時段轉換
+  function applyPeriod(h, line) {
+    if (/下午|傍晚/.test(line) && h < 12) return h + 12;
+    if (/晚上|晚/.test(line) && h < 12) return h + 12;
+    return h;
+  }
+
   // 貼上模式：解析單行
-  // 支援格式：7/4 (六) 9:00-11:00青年公園  /  7/05 9:00-11:00@青年
   function parseLine(line) {
-    // 日期：M/D 或 M/DD，括號內星期可有可無
+    // 日期：M/D，括號或空格後星期可有可無
     const dateMatch = line.match(/(\d{1,2})\/(\d{1,2})/);
     if (!dateMatch) return null;
     const month = parseInt(dateMatch[1]);
     const day = parseInt(dateMatch[2]);
 
-    // 時間：HH:MM-HH:MM 或 H:MM-H:MM（半形或全形連字符）
-    const timeMatch = line.match(/(\d{1,2}):(\d{2})\s*[-－~～]\s*(\d{1,2}):(\d{2})/);
-    if (!timeMatch) return null;
-    const startH = parseInt(timeMatch[1]);
-    const startM = parseInt(timeMatch[2]);
-    const endH = parseInt(timeMatch[3]);
-    const endM = parseInt(timeMatch[4]);
+    let startH, startM, endH, endM;
+
+    // 嘗試 HH:MM-HH:MM（含全形符號）
+    const fullTime = line.match(/(\d{1,2}):(\d{2})\s*[-－~～]\s*(\d{1,2}):(\d{2})/);
+    if (fullTime) {
+      startH = parseInt(fullTime[1]); startM = parseInt(fullTime[2]);
+      endH   = parseInt(fullTime[3]); endM   = parseInt(fullTime[4]);
+    } else {
+      // 嘗試 HH:MM-HH（結束無分鐘）
+      const mixedTime = line.match(/(\d{1,2}):(\d{2})\s*[-－~～]\s*(\d{1,2})(?![:：\d])/);
+      if (mixedTime) {
+        startH = parseInt(mixedTime[1]); startM = parseInt(mixedTime[2]);
+        endH   = parseInt(mixedTime[3]); endM   = 0;
+      } else {
+        // 嘗試 HH-HH（整點，無分鐘）
+        const simpleTime = line.match(/(\d{1,2})\s*[-－~～]\s*(\d{1,2})(?![:：\/\d])/);
+        if (simpleTime) {
+          startH = parseInt(simpleTime[1]); startM = 0;
+          endH   = parseInt(simpleTime[2]); endM   = 0;
+        } else {
+          return null;
+        }
+      }
+    }
+
+    startH = applyPeriod(startH, line);
+    endH   = applyPeriod(endH, line);
 
     const loc = detectLoc(line);
-
     return { month, day, startH, startM, endH, endM, loc };
   }
 
