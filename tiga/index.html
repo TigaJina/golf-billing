@@ -1,1 +1,630 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tiga 上課訊息產生器</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #2d6a4f;
+    --green-light: #40916c;
+    --green-pale: #d8f3dc;
+    --gold: #b5883a;
+    --gold-light: #e8c06a;
+    --warn-bg: #fff8e1;
+    --warn-border: #f0c96b;
+    --warn-text: #7a5c00;
+    --bg: #f7f5f0;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e2ddd5;
+    --danger: #c0392b;
+    --radius: 12px;
+  }
+
+  body {
+    font-family: 'Noto Sans TC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .container { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+  header { text-align: center; padding: 1rem 0 0.25rem; }
+  header h1 { font-size: 1.4rem; font-weight: 700; color: var(--green); letter-spacing: 0.05em; }
+  header p { font-size: 0.82rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 1.25rem 1.35rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+
+  .card-title {
+    font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em;
+    color: var(--gold); text-transform: uppercase; margin-bottom: 0.9rem;
+  }
+
+  /* 模式切換 tab */
+  .mode-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .mode-tab {
+    flex: 1; padding: 0.5rem; border: 2px solid var(--border);
+    border-radius: 8px; background: transparent; font-family: inherit;
+    font-size: 0.85rem; font-weight: 500; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .mode-tab:hover { border-color: var(--green-light); color: var(--green); }
+  .mode-tab.active { border-color: var(--green); background: var(--green-pale); color: var(--green); font-weight: 700; }
+
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; }
+
+  /* 地點 */
+  .location-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
+  .loc-btn {
+    padding: 0.55rem 0.3rem; border: 2px solid var(--border); border-radius: 8px;
+    background: transparent; font-family: inherit; font-size: 0.88rem; font-weight: 500;
+    color: var(--muted); cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .loc-btn:hover { border-color: var(--green-light); color: var(--green); }
+  .loc-btn.active { border-color: var(--green); background: var(--green-pale); color: var(--green); font-weight: 700; }
+
+  /* 欄位 */
+  .fields-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 0.6rem; }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  label { font-size: 0.73rem; font-weight: 500; color: var(--muted); }
+
+  input[type="number"] {
+    width: 100%; padding: 0.5rem 0.6rem; border: 2px solid var(--border);
+    border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 0.95rem;
+    color: var(--text); background: var(--bg); transition: border-color 0.15s;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus { outline: none; border-color: var(--green-light); background: #fff; }
+
+  /* 貼上文字框 */
+  textarea {
+    width: 100%; padding: 0.65rem 0.75rem; border: 2px solid var(--border);
+    border-radius: 8px; font-family: 'DM Mono', monospace; font-size: 0.85rem;
+    color: var(--text); background: var(--bg); resize: vertical; min-height: 120px;
+    transition: border-color 0.15s; line-height: 1.6;
+  }
+  textarea:focus { outline: none; border-color: var(--green-light); background: #fff; }
+  textarea::placeholder { color: var(--muted); }
+
+  .parse-btn {
+    margin-top: 0.6rem; width: 100%; padding: 0.6rem;
+    background: transparent; border: 2px solid var(--green);
+    border-radius: 8px; font-family: inherit; font-size: 0.88rem;
+    font-weight: 700; color: var(--green); cursor: pointer; transition: all 0.15s;
+  }
+  .parse-btn:hover { background: var(--green-pale); }
+
+  /* 解析預覽 */
+  .parse-preview {
+    margin-top: 0.75rem; padding: 0.75rem; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.82rem; line-height: 1.8; display: none;
+  }
+  .parse-preview.visible { display: block; }
+  .parse-row { display: flex; justify-content: space-between; align-items: center; }
+  .parse-row span { color: var(--muted); font-size: 0.75rem; }
+  .parse-badge {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 99px;
+    font-size: 0.72rem; font-weight: 700; background: var(--green-pale); color: var(--green);
+  }
+  .parse-badge.extra { background: #fff3e0; color: #b06000; }
+
+  /* 警告 */
+  .warning {
+    padding: 0.6rem 0.8rem; background: var(--warn-bg);
+    border: 1px solid var(--warn-border); border-radius: 8px;
+    font-size: 0.82rem; color: var(--warn-text); margin-top: 0.6rem; display: none;
+  }
+  .warning.visible { display: block; }
+
+  .error { font-size: 0.82rem; color: var(--danger); margin-top: 0.5rem; min-height: 1.1em; }
+
+  /* 暫定時間 */
+  .extra-toggle {
+    display: flex; align-items: center; gap: 0.6rem;
+    cursor: pointer; user-select: none; font-size: 0.88rem; font-weight: 500; color: var(--green);
+  }
+  .extra-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+
+  .extra-dates { margin-top: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+  .extra-dates.hidden { display: none; }
+
+  .extra-date-row { display: flex; align-items: flex-end; gap: 0.5rem; }
+  .extra-date-row .fields-row { flex: 1; }
+
+  .remove-btn {
+    padding: 0.5rem 0.65rem; background: transparent; border: 2px solid var(--border);
+    border-radius: 8px; color: var(--muted); font-size: 0.85rem; cursor: pointer;
+    transition: all 0.15s; line-height: 1; flex-shrink: 0;
+  }
+  .remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  .add-date-btn {
+    align-self: flex-start; margin-top: 0.25rem; padding: 0.45rem 1rem;
+    background: transparent; border: 2px dashed var(--green-light); border-radius: 8px;
+    color: var(--green); font-family: inherit; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all 0.15s; display: none;
+  }
+  .add-date-btn:hover { background: var(--green-pale); }
+
+  /* 產生 */
+  .generate-btn {
+    width: 100%; padding: 0.8rem; background: var(--green); color: #fff;
+    border: none; border-radius: 8px; font-family: inherit; font-size: 0.95rem;
+    font-weight: 700; letter-spacing: 0.05em; cursor: pointer; transition: background 0.15s;
+  }
+  .generate-btn:hover { background: var(--green-light); }
+
+  /* 輸出 */
+  .output-area { display: none; flex-direction: column; gap: 0.75rem; }
+  .output-area.visible { display: flex; }
+
+  .output-box {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 1rem 1.1rem; font-size: 0.88rem; line-height: 1.85;
+    white-space: pre-wrap; word-break: break-word; color: var(--text);
+  }
+
+  .copy-btn {
+    align-self: flex-end; padding: 0.5rem 1.2rem; background: var(--gold); color: #fff;
+    border: none; border-radius: 8px; font-family: inherit; font-size: 0.85rem;
+    font-weight: 700; cursor: pointer; transition: background 0.15s; letter-spacing: 0.05em;
+  }
+  .copy-btn:hover { background: var(--gold-light); color: #333; }
+  .copy-btn.copied { background: var(--green); color: #fff; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>⛳ Tiga 上課訊息產生器</h1>
+    <p>選擇地點，輸入日期與時間，一鍵複製</p>
+  </header>
+
+  <!-- 地點 -->
+  <div class="card">
+    <div class="card-title">地點</div>
+    <div class="location-grid">
+      <button class="loc-btn active" data-loc="青年">青年</button>
+      <button class="loc-btn" data-loc="新店">新店</button>
+      <button class="loc-btn" data-loc="益莊">益莊</button>
+      <button class="loc-btn" data-loc="美麗華">美麗華</button>
+    </div>
+  </div>
+
+  <!-- 輸入模式 -->
+  <div class="card">
+    <div class="card-title">第一堂課時間</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="switchMode('manual')">手動輸入</button>
+      <button class="mode-tab" onclick="switchMode('paste')">貼上解析</button>
+    </div>
+
+    <!-- 手動模式 -->
+    <div class="mode-panel active" id="panelManual">
+      <div class="fields-row">
+        <div class="field"><label>月</label><input type="number" id="month" min="1" max="12" placeholder="4"></div>
+        <div class="field"><label>日</label><input type="number" id="day" min="1" max="31" placeholder="14"></div>
+        <div class="field"><label>時</label><input type="number" id="hour" min="0" max="23" placeholder="9"></div>
+        <div class="field"><label>分（留空為 0）</label><input type="number" id="minute" min="0" max="59" placeholder="0"></div>
+      </div>
+      <div class="warning visible" id="warnManual">⚠️ 手動模式結束時間固定為開始時間 ＋1 小時，請確認是否正確。</div>
+      <div class="error" id="mainError"></div>
+    </div>
+
+    <!-- 貼上模式 -->
+    <div class="mode-panel" id="panelPaste">
+      <textarea id="pasteInput" placeholder="貼上排程文字，例如：
+7/4 (六) 9:00-11:00青年公園
+7/5(日)9:00-11:00青年公園
+7/11(六)9:00-11:00青年公園"></textarea>
+      <button class="parse-btn" onclick="parsePaste()">解析</button>
+      <div class="warning" id="warnMixedLoc">⚠️ 注意：資料中有上課地點不同，已取第一筆地點。</div>
+      <div class="error" id="pasteError"></div>
+      <div class="parse-preview" id="parsePreview"></div>
+    </div>
+  </div>
+
+  <!-- 暫定時間（手動模式用） -->
+  <div class="card" id="extraCard">
+    <label class="extra-toggle">
+      <input type="checkbox" id="extraToggle" onchange="toggleExtra()">
+      新增暫定後續上課時間
+    </label>
+    <div class="extra-dates hidden" id="extraDates"></div>
+    <button class="add-date-btn" id="addDateBtn" onclick="addExtraRow()">＋ 新增一筆</button>
+    <div class="error" id="extraError"></div>
+  </div>
+
+  <button class="generate-btn" onclick="generate()">產生訊息</button>
+
+  <div class="card output-area" id="outputArea">
+    <div class="card-title">產生結果</div>
+    <div class="output-box" id="outputBox"></div>
+    <button class="copy-btn" id="copyBtn" onclick="copyText()">複製</button>
+  </div>
+</div>
+
+<script>
+  const WEEKDAYS = ['（日）','（一）','（二）','（三）','（四）','（五）','（六）'];
+  let selectedLoc = '青年';
+  let extraRowCount = 0;
+  let currentMode = 'manual';
+  let parsedData = null; // { first, extras[] } from paste mode
+
+  // 地點按鈕
+  document.querySelectorAll('.loc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedLoc = btn.dataset.loc;
+    });
+  });
+
+  function setLocBtn(loc) {
+    selectedLoc = loc;
+    document.querySelectorAll('.loc-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.loc === loc);
+    });
+  }
+
+  // 模式切換
+  function switchMode(mode) {
+    currentMode = mode;
+    document.querySelectorAll('.mode-tab').forEach((t, i) => {
+      t.classList.toggle('active', (i === 0 && mode === 'manual') || (i === 1 && mode === 'paste'));
+    });
+    document.getElementById('panelManual').classList.toggle('active', mode === 'manual');
+    document.getElementById('panelPaste').classList.toggle('active', mode === 'paste');
+    document.getElementById('extraCard').style.display = mode === 'manual' ? '' : 'none';
+    parsedData = null;
+    clearOutput();
+  }
+
+  function clearOutput() {
+    document.getElementById('outputArea').classList.remove('visible');
+    document.getElementById('mainError').textContent = '';
+    document.getElementById('pasteError').textContent = '';
+    document.getElementById('extraError').textContent = '';
+  }
+
+  // 暫定時間
+  function toggleExtra() {
+    const checked = document.getElementById('extraToggle').checked;
+    const area = document.getElementById('extraDates');
+    const addBtn = document.getElementById('addDateBtn');
+    if (checked) {
+      area.classList.remove('hidden');
+      addBtn.style.display = 'block';
+      if (extraRowCount === 0) addExtraRow();
+    } else {
+      area.classList.add('hidden');
+      addBtn.style.display = 'none';
+    }
+  }
+
+  function addExtraRow() {
+    extraRowCount++;
+    const id = extraRowCount;
+    const container = document.getElementById('extraDates');
+    const row = document.createElement('div');
+    row.className = 'extra-date-row';
+    row.id = `extraRow${id}`;
+    row.innerHTML = `
+      <div class="fields-row">
+        <div class="field"><label>月</label><input type="number" id="em${id}" min="1" max="12" placeholder="5"></div>
+        <div class="field"><label>日</label><input type="number" id="ed${id}" min="1" max="31" placeholder="30"></div>
+        <div class="field"><label>時</label><input type="number" id="eh${id}" min="0" max="23" placeholder="17"></div>
+        <div class="field"><label>分（留空為 0）</label><input type="number" id="emin${id}" min="0" max="59" placeholder="0"></div>
+      </div>
+      <button class="remove-btn" onclick="removeRow(${id})">✕</button>
+    `;
+    container.appendChild(row);
+  }
+
+  function removeRow(id) {
+    document.getElementById(`extraRow${id}`)?.remove();
+  }
+
+  // 工具函式
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function getWeekday(month, day) {
+    return WEEKDAYS[new Date(new Date().getFullYear(), month - 1, day).getDay()];
+  }
+
+  function locLabel(loc) {
+    if (loc === '新店') return '大新店';
+    if (loc === '益莊') return '益莊練習場';
+    return loc;
+  }
+
+  // 貼上模式：地點辨識
+  const LOC_MAP = [
+    { keys: ['青年公園', '青年'], loc: '青年' },
+    { keys: ['大新店', '新店'], loc: '新店' },
+    { keys: ['益莊'], loc: '益莊' },
+    { keys: ['美麗華'], loc: '美麗華' },
+  ];
+
+  function detectLoc(str) {
+    for (const { keys, loc } of LOC_MAP) {
+      if (keys.some(k => str.includes(k))) return loc;
+    }
+    return null;
+  }
+
+  // 貼上模式：解析單行
+  // 支援格式：7/4 (六) 9:00-11:00青年公園  /  7/05 9:00-11:00@青年
+  function parseLine(line) {
+    // 日期：M/D 或 M/DD，括號內星期可有可無
+    const dateMatch = line.match(/(\d{1,2})\/(\d{1,2})/);
+    if (!dateMatch) return null;
+    const month = parseInt(dateMatch[1]);
+    const day = parseInt(dateMatch[2]);
+
+    // 時間：HH:MM-HH:MM 或 H:MM-H:MM（半形或全形連字符）
+    const timeMatch = line.match(/(\d{1,2}):(\d{2})\s*[-－~～]\s*(\d{1,2}):(\d{2})/);
+    if (!timeMatch) return null;
+    const startH = parseInt(timeMatch[1]);
+    const startM = parseInt(timeMatch[2]);
+    const endH = parseInt(timeMatch[3]);
+    const endM = parseInt(timeMatch[4]);
+
+    const loc = detectLoc(line);
+
+    return { month, day, startH, startM, endH, endM, loc };
+  }
+
+  // 解析貼上文字
+  function parsePaste() {
+    document.getElementById('pasteError').textContent = '';
+    document.getElementById('warnMixedLoc').classList.remove('visible');
+    document.getElementById('parsePreview').classList.remove('visible');
+    parsedData = null;
+
+    const raw = document.getElementById('pasteInput').value.trim();
+    if (!raw) { document.getElementById('pasteError').textContent = '請貼上排程文字。'; return; }
+
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsed = [];
+    for (const line of lines) {
+      const r = parseLine(line);
+      if (r) parsed.push(r);
+    }
+
+    if (parsed.length === 0) {
+      document.getElementById('pasteError').textContent = '無法解析任何日期時間，請確認格式。';
+      return;
+    }
+
+    // 取第一筆地點
+    const firstLoc = parsed[0].loc;
+    const hasMultiLoc = parsed.some(p => p.loc && p.loc !== firstLoc);
+    if (hasMultiLoc) document.getElementById('warnMixedLoc').classList.add('visible');
+
+    // 套用地點
+    const loc = firstLoc || selectedLoc;
+    if (firstLoc) setLocBtn(firstLoc);
+
+    parsedData = {
+      first: parsed[0],
+      extras: parsed.slice(1),
+      loc,
+    };
+
+    // 顯示預覽
+    const preview = document.getElementById('parsePreview');
+    let html = `<div class="parse-row"><strong>解析到 ${parsed.length} 筆資料</strong></div>`;
+    parsed.forEach((p, i) => {
+      const wd = getWeekday(p.month, p.day);
+      const label = i === 0 ? '第一堂' : '暫定';
+      html += `<div class="parse-row" style="margin-top:0.4rem;">
+        <span>${p.month}/${p.day}${wd} ${p.startH}:${pad(p.startM)}~${p.endH}:${pad(p.endM)}</span>
+        <span class="parse-badge ${i > 0 ? 'extra' : ''}">${label}</span>
+      </div>`;
+    });
+    preview.innerHTML = html;
+    preview.classList.add('visible');
+  }
+
+  // 手動模式：解析欄位
+  function parseManual() {
+    const month = parseInt(document.getElementById('month').value);
+    const day = parseInt(document.getElementById('day').value);
+    const hour = parseInt(document.getElementById('hour').value);
+    const minuteVal = document.getElementById('minute').value;
+    const minute = minuteVal === '' ? 0 : parseInt(minuteVal);
+
+    if (isNaN(month) || isNaN(day) || isNaN(hour)) return null;
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    if (hour < 0 || hour > 23) return null;
+    if (isNaN(minute) || minute < 0 || minute > 59) return null;
+    return { month, day, hour, minute };
+  }
+
+  function parseExtraRows() {
+    const rows = document.querySelectorAll('.extra-date-row');
+    const results = [];
+    for (const row of rows) {
+      const id = row.id.replace('extraRow', '');
+      const m = parseInt(document.getElementById(`em${id}`).value);
+      const d = parseInt(document.getElementById(`ed${id}`).value);
+      const h = parseInt(document.getElementById(`eh${id}`).value);
+      const minVal = document.getElementById(`emin${id}`).value;
+      const min = minVal === '' ? 0 : parseInt(minVal);
+
+      if (isNaN(m) || isNaN(d) || isNaN(h)) return null;
+      if (m < 1 || m > 12 || d < 1 || d > 31 || h < 0 || h > 23) return null;
+      if (isNaN(min) || min < 0 || min > 59) return null;
+      results.push({ month: m, day: d, startH: h, startM: min, endH: h + 1, endM: min });
+    }
+    return results;
+  }
+
+  // 組日期字串（共用）
+  function buildLine(month, day, startH, startM, endH, endM, loc) {
+    const wd = getWeekday(month, day);
+    return `${month}/${day}${wd}${startH}:${pad(startM)}~${endH}:${pad(endM)}@${locLabel(loc)}`;
+  }
+
+  // 模板
+  const TEMPLATES = {
+    青年: (firstLine, extraBlock) =>
+`上課相關資訊
+➤第一堂課時間
+${firstLine}${extraBlock}
+➤課前
+先至櫃台購買練習球，向球務人員告知 Tiga 教練上課，確認球道號碼
+請提早到場，遲到 10 分鐘以上須等待重新安排打位
+練習場低消為每球道 3 盒球（60 元／盒）
+➤預約規則
+當日取消視同上課
+需改期請提前 1~3 天告知
+➤課後
+請與教練預約下次上課時間
+有問題可至練習場 1 樓中間 Tiga 青年教室詢問 🙏
+上課地址：
+青年公園高爾夫球練習場
+__https://maps.app.goo.gl/qGHgVRZMVQyNrArd6__
+⛳️ Tiga台灣高爾夫個別課程
+課程收費：__https://reurl.cc/1YEOm8__
+教練團隊：__https://reurl.cc/EmpEEk__`,
+
+    新店: (firstLine, extraBlock) =>
+`上課相關資訊
+➤第一堂課時間
+${firstLine}${extraBlock}
+➤課前
+先至櫃台購買練習球並自行確認球道，找到球道後在群組內告知球道號碼 
+每堂課約使用 2~3 盒球
+請提早到場確認球道
+※如遇假日上課，練習場人較多，請務必提早15-20分鐘到球場確認球道；通常2樓比較有打位※
+➤預約規則
+當日取消視同上課
+需改期請提前 1~3 天告知
+➤課後
+請與教練預約下次上課時間
+有問題可至練習場 2 樓右手邊 Tiga 新店教室詢問 🙏
+上課地址：
+大新店高爾夫練習場
+__https://maps.app.goo.gl/9ht8C3rzzZGzQ8Nb8__
+⛳️ Tiga台灣高爾夫個別課程
+課程收費：__https://reurl.cc/1YEOm8__
+教練團隊：__https://reurl.cc/EmpEEk__`,
+
+    益莊: (firstLine, extraBlock) =>
+`上課相關資訊
+➤第一堂課時間
+${firstLine}${extraBlock}
+➤課前
+先至櫃台購買練習球並自行確認球道，找到球道後在群組內告知球道號碼 
+每堂課約使用 2~3 盒球
+請提早到場確認球道
+➤預約規則
+當日取消視同上課
+如需改期請提前 1~3 天告知
+➤課後
+請與教練預約下次上課時間 
+上課地址：
+益莊高爾夫練習場
+__https://share.google/nEyBufB5K9a4IiRZ2__
+⛳️ Tiga台灣高爾夫個別課程
+課程收費：__https://reurl.cc/1YEOm8__
+教練團隊：__https://reurl.cc/EmpEEk__`,
+
+    美麗華: (firstLine, extraBlock) =>
+`上課相關資訊
+➤第一堂課時間 
+${firstLine}${extraBlock}
+➤課前 
+可提早 10 分鐘至 Tiga Range Cafe 練習場櫃台購買球盒並確認上課球道位置 
+告知球道位置後教練會過去找您 
+可購買美麗華練習場提供 Tiga 學員上課使用方案 
+平日 300 元暢打 3 小時／假日 300 元暢打 2 小時
+➤預約規則 
+當日取消視同上課 
+需改期請提前 1~3 天告知
+➤課後 
+請與教練預約下次上課時間 🙏
+上課地址： 美麗華高爾夫鄉村俱樂部
+__https://maps.app.goo.gl/8abjZJBLAzsBADJk9__ 
+⛳️ Tiga台灣高爾夫個別課程
+課程收費：__https://reurl.cc/1YEOm8__ 
+教練團隊：__https://reurl.cc/EmpEEk__`,
+  };
+
+  function generate() {
+    document.getElementById('mainError').textContent = '';
+    document.getElementById('extraError').textContent = '';
+    document.getElementById('pasteError').textContent = '';
+
+    let firstLine, extraBlock = '', loc;
+
+    if (currentMode === 'manual') {
+      const main = parseManual();
+      if (!main) { document.getElementById('mainError').textContent = '請正確填寫月、日與開始時間。'; return; }
+      loc = selectedLoc;
+      const endH = main.hour + 1;
+      firstLine = buildLine(main.month, main.day, main.hour, main.minute, endH, main.minute, loc);
+
+      if (document.getElementById('extraToggle').checked) {
+        const extras = parseExtraRows();
+        if (extras === null) { document.getElementById('extraError').textContent = '請正確填寫所有暫定時間欄位。'; return; }
+        if (extras.length > 0) {
+          const lines = extras.map(e => buildLine(e.month, e.day, e.startH, e.startM, e.endH, e.endM, loc)).join('\n');
+          extraBlock = `\n暫定以下時間上課：\n${lines}`;
+        }
+      }
+
+    } else {
+      if (!parsedData) { document.getElementById('pasteError').textContent = '請先按「解析」。'; return; }
+      loc = parsedData.loc;
+      const f = parsedData.first;
+      firstLine = buildLine(f.month, f.day, f.startH, f.startM, f.endH, f.endM, loc);
+
+      if (parsedData.extras.length > 0) {
+        const lines = parsedData.extras.map(e => buildLine(e.month, e.day, e.startH, e.startM, e.endH, e.endM, loc)).join('\n');
+        extraBlock = `\n暫定以下時間上課：\n${lines}`;
+      }
+    }
+
+    const result = TEMPLATES[loc](firstLine, extraBlock);
+    document.getElementById('outputBox').textContent = result;
+    const area = document.getElementById('outputArea');
+    area.classList.add('visible');
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const copyBtn = document.getElementById('copyBtn');
+    copyBtn.textContent = '複製';
+    copyBtn.classList.remove('copied');
+  }
+
+  function copyText() {
+    navigator.clipboard.writeText(document.getElementById('outputBox').textContent).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '已複製 ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>
