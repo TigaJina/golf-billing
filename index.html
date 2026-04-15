@@ -1030,8 +1030,14 @@ function calcMirage() {
   let noticeText = `<新預約>\nTIGA自背9洞名單輸入順序\n預約資訊如下:\n${displayDate}\n${coachZh}教練${group}（帳目代碼：${code})\n`;
   students.forEach(s => { noticeText += `${s}${group}\n`; });
 
+  const shortDate = date.replace(/\(.\)$/, '').trim() + (weekdayMatch ? weekdayMatch[0] : '');
+  const studentNotice = `🔔 已預約 ${shortDate} 美麗華九洞下場，再請留意當天的課程時間，提前到場準備，若有任何行程異動可以隨時在群組通知，謝謝您!`;
+
   const warning = `<div class="note-box" style="margin-bottom:8px;">⚠️ 請確認組別排序（目前第${group}組）</div>`;
-  const html = warning + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('mg-notice')">複製</button><div class="notice-text" id="mg-notice" style="white-space:pre-wrap;">${noticeText.trim()}</div></div></div>`;
+  const html = warning
+    + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('mg-notice')">複製</button><div class="notice-text" id="mg-notice" style="white-space:pre-wrap;">${noticeText.trim()}</div></div></div>`
+    + `<div style="font-size:12px;color:#666;margin:12px 0 4px;">學員通知</div>`
+    + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('mg-student-notice')">複製</button><div class="notice-text" id="mg-student-notice" style="white-space:pre-wrap;">${studentNotice}</div></div></div>`;
   showResult('mg-out', html);
 }
 
