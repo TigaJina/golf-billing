@@ -61,6 +61,8 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
   <div class="tab" onclick="showTab('swing',this)">揮桿基礎</div>
   <div class="tab" onclick="showTab('refund',this)">退費/轉約</div>
   <div class="tab" onclick="showTab('contract',this)">合約通知</div>
+  <div class="tab" onclick="showTab('mirage',this)">美麗華通知</div>
+  <div class="tab" onclick="showTab('settings',this)">設定</div>
   <div class="tab" onclick="showTab('help',this)">使用說明</div>
 </div>
 
@@ -329,7 +331,59 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
   <div id="ct-out"></div>
 </div>
 
-<!-- 使用說明 -->
+<!-- 美麗華通知 -->
+<div id="tab-mirage" class="panel">
+  <div class="card">
+    <div class="card-title">預約類型</div>
+    <div class="rg" id="mg-type-rg">
+      <div class="rb on" onclick="pickRb('mg-type-rg',this,'personal');toggleMgType()">個人班九洞</div>
+      <div class="rb" onclick="pickRb('mg-type-rg',this,'group');toggleMgType()">團體九洞</div>
+      <div class="rb" onclick="pickRb('mg-type-rg',this,'coach');toggleMgType()">教練九洞</div>
+    </div>
+    <input type="hidden" id="mg-type" value="personal">
+  </div>
+  <div class="card">
+    <div class="card-title">預約資訊</div>
+    <label>下場日期</label>
+    <input type="text" id="mg-date" placeholder="例：4/17" onblur="autoFillWeekday('mg-date')">
+    <label>教練</label>
+    <select id="mg-coach"><option value="">請選擇教練</option></select>
+    <label>帳目代碼</label>
+    <div id="mg-code-personal">
+      <input type="text" id="mg-code-input" placeholder="手填帳目代碼">
+    </div>
+    <div id="mg-code-fixed" style="display:none">
+      <div id="mg-code-display" style="font-size:14px;color:#4a7c59;font-weight:600;padding:9px 12px;border:1px solid #ddd;border-radius:7px;background:#fafaf8;margin-bottom:14px;"></div>
+    </div>
+    <label>學員名單（一行一人，可直接貼上多人）</label>
+    <textarea id="mg-students" rows="4" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:7px;font-size:14px;background:#fafaf8;resize:vertical;margin-bottom:14px;" placeholder="例：&#10;張三&#10;李四&#10;王五"></textarea>
+    <div class="note-box">⚠️ 請確認組別排序是否正確（預設為第1組）</div>
+    <label>組別編號</label>
+    <input type="number" id="mg-group" min="1" value="1" placeholder="組別">
+  </div>
+  <button class="btn" onclick="calcMirage()">產生通知</button>
+  <div id="mg-out"></div>
+</div>
+
+<!-- 設定 -->
+<div id="tab-settings" class="panel">
+  <div class="card">
+    <div class="card-title">九洞代碼設定</div>
+    <label>團體九洞代碼</label>
+    <input type="text" id="set-group-code" placeholder="例：26I-004">
+    <label>教練九洞代碼</label>
+    <input type="text" id="set-coach-code" placeholder="例：26T-001">
+  </div>
+  <div class="card">
+    <div class="card-title">教練等級設定</div>
+    <div id="set-coach-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">私教課價格設定</div>
+    <div id="set-price-list"></div>
+  </div>
+  <button class="btn" onclick="exportHTML()">匯出新版 HTML 下載</button>
+</div>
 <div id="tab-help" class="panel">
   <div class="card">
     <div class="card-title">基本操作</div>
@@ -451,7 +505,7 @@ const coaches = [
 ];
 
 function populateCoachSelects() {
-  const selects = ['p-coach', 'plus-coach', 'sw-coach', 'ct-coach'];
+  const selects = ['p-coach', 'plus-coach', 'sw-coach', 'ct-coach', 'mg-coach'];
   selects.forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -640,18 +694,18 @@ function calcPrivate() {
   let noticeText = `提供繳費資訊給您：\n${coachEn}教練${typeLabel}，\n`;
   if (sess === 'single' && count === 1) {
     if (coachEn === 'Steven') {
-      noticeText += `單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
+      noticeText += `\n單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
     } else {
-      noticeText += `單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
+      noticeText += `\n單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
     }
   } else if (sess === 'single' && count > 1) {
-    noticeText += `單堂$${fmt(p.single)}×${count}堂 = $${fmt(amount)}，\n`;
+    noticeText += `\n單堂$${fmt(p.single)}×${count}堂 = $${fmt(amount)}，\n`;
   } else if (coachEn === 'Steven') {
-    noticeText += `單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
+    noticeText += `\n單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
   } else {
-    noticeText += `單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
+    noticeText += `\n單堂$${fmt(p.single)}，\n十堂$${fmt(p.x10)}，\n`;
   }
-  noticeText += `(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n${bank}\n${deadlineText}\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
+  noticeText += `(課程費用不含球資)\n課程期限為6個月，相關課程資訊請參閱課程須知。\n\n${bank}\n\n${deadlineText}\n*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您`;
   if (sess === 'single' && count === 1) {
     noticeText += `\n\n您可先匯單堂價格，如果試上當日確定續十堂並匯款仍可享十堂優惠價格，當日就視為十堂課的第一堂`;
   }
@@ -923,10 +977,123 @@ function initDefaults() {
 
   const discountEl = document.getElementById('rf-unit-discount');
   discountEl.addEventListener('input', () => { discountEl._userEdited = true; });
+  initSettings();
 }
 
 populateCoachSelects();
 initDefaults();
+
+// ===== 美麗華通知 =====
+function toggleMgType() {
+  const type = document.getElementById('mg-type').value;
+  const isPersonal = type === 'personal';
+  document.getElementById('mg-code-personal').style.display = isPersonal ? 'block' : 'none';
+  document.getElementById('mg-code-fixed').style.display = isPersonal ? 'none' : 'block';
+  if (!isPersonal) {
+    const groupCode = document.getElementById('set-group-code').value || '26I-004';
+    const coachCode = document.getElementById('set-coach-code').value || '26T-001';
+    document.getElementById('mg-code-display').textContent = `帳目代碼：${type === 'group' ? groupCode : coachCode}`;
+  }
+}
+
+function calcMirage() {
+  const type = document.getElementById('mg-type').value;
+  const date = document.getElementById('mg-date').value;
+  const coachEn = document.getElementById('mg-coach').value;
+  const group = document.getElementById('mg-group').value || '1';
+  const studentsRaw = document.getElementById('mg-students').value.trim();
+
+  if (!date) return showResult('mg-out', '<div class="err">請填寫下場日期</div>');
+  if (!coachEn) return showResult('mg-out', '<div class="err">請選擇教練</div>');
+  if (!studentsRaw) return showResult('mg-out', '<div class="err">請填寫學員名單</div>');
+
+  const coach = coaches.find(c => c.en === coachEn);
+  const coachZh = coach ? coach.zh : coachEn;
+
+  let code = '';
+  if (type === 'personal') {
+    code = document.getElementById('mg-code-input').value.trim();
+    if (!code) return showResult('mg-out', '<div class="err">請填寫帳目代碼</div>');
+  } else if (type === 'group') {
+    code = document.getElementById('set-group-code').value || '26I-004';
+  } else {
+    code = document.getElementById('set-coach-code').value || '26T-001';
+  }
+
+  const students = studentsRaw.split('\n').map(s => s.trim()).filter(s => s);
+  const year = new Date().getFullYear();
+  const dateParts = date.match(/^(\d{1,2})\/(\d{1,2})/);
+  const fullDate = dateParts ? `${year}/${String(dateParts[1]).padStart(2,'0')}/${String(dateParts[2]).padStart(2,'0')}` : date;
+  const weekdayMatch = date.match(/\([日一二三四五六]\)/);
+  const displayDate = weekdayMatch ? `${year}/${String(dateParts[1]).padStart(2,'0')}/${String(dateParts[2]).padStart(2,'0')} ${weekdayMatch[0]}` : fullDate;
+
+  let noticeText = `<新預約>\nTIGA自背9洞名單輸入順序\n預約資訊如下:\n${displayDate}\n${coachZh}教練${group}（帳目代碼：${code})\n`;
+  students.forEach(s => { noticeText += `${s}${group}\n`; });
+
+  const warning = `<div class="note-box" style="margin-bottom:8px;">⚠️ 請確認組別排序（目前第${group}組）</div>`;
+  const html = warning + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('mg-notice')">複製</button><div class="notice-text" id="mg-notice" style="white-space:pre-wrap;">${noticeText.trim()}</div></div></div>`;
+  showResult('mg-out', html);
+}
+
+// ===== 設定頁面 =====
+function initSettings() {
+  const groupCode = document.getElementById('set-group-code');
+  const coachCode = document.getElementById('set-coach-code');
+  groupCode.value = '26I-004';
+  coachCode.value = '26T-001';
+
+  const coachList = document.getElementById('set-coach-list');
+  coachList.innerHTML = coaches.map((c, i) => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+      <span style="font-size:14px;min-width:120px;">${c.zh}（${c.en}）</span>
+      <select id="set-coach-level-${i}" style="flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;">
+        ${['A','AA','AAA','Master'].map(l => `<option value="${l}" ${c.level===l?'selected':''}>${l}</option>`).join('')}
+      </select>
+    </div>
+  `).join('');
+
+  const priceList = document.getElementById('set-price-list');
+  const levels = ['A','AA','AAA'];
+  const types = [['1v1','一對一'],['1v2','一對二'],['1v3','一對三']];
+  priceList.innerHTML = levels.map(level => `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:600;color:#4a7c59;margin-bottom:8px;">${level} 等級</div>
+      ${types.map(([key, label]) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:13px;min-width:60px;">${label}</span>
+          <input type="number" id="set-price-${level}-${key}-single" value="${PRIVATE_PRICE[level][key].single}"
+            style="flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;" placeholder="單堂">
+          <input type="number" id="set-price-${level}-${key}-x10" value="${PRIVATE_PRICE[level][key].x10}"
+            style="flex:1;padding:7px 10px;border:1px solid #ddd;border-radius:7px;font-size:13px;" placeholder="十堂">
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function exportHTML() {
+  const levels = ['A','AA','AAA'];
+  const types = ['1v1','1v2','1v3'];
+  levels.forEach(level => {
+    types.forEach(key => {
+      const single = parseInt(document.getElementById(`set-price-${level}-${key}-single`).value);
+      const x10 = parseInt(document.getElementById(`set-price-${level}-${key}-x10`).value);
+      if (!isNaN(single)) PRIVATE_PRICE[level][key].single = single;
+      if (!isNaN(x10)) PRIVATE_PRICE[level][key].x10 = x10;
+    });
+  });
+  coaches.forEach((c, i) => {
+    const sel = document.getElementById(`set-coach-level-${i}`);
+    if (sel) c.level = sel.value;
+  });
+
+  const src = document.documentElement.outerHTML;
+  const blob = new Blob([src], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'golf_billing.html';
+  a.click();
+}
 </script>
 </body>
 </html>
