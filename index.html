@@ -99,6 +99,13 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
       <label>購買堂數（1-9堂）</label>
       <input type="number" id="p-single-count" min="1" max="9" value="1" placeholder="堂數">
     </div>
+    <div id="p-deduct-row" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <input type="checkbox" id="p-deduct-check" onchange="togglePDeduct()" style="width:18px;height:18px;cursor:pointer;">
+        <label for="p-deduct-check" style="margin:0;cursor:pointer;">學生已付單堂，計算尾款</label>
+      </div>
+      <div id="p-deduct-amount-row" style="display:none;font-size:13px;color:#4a7c59;font-weight:600;margin-bottom:14px;"></div>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">付款資訊</div>
@@ -617,6 +624,14 @@ function toggleEnglish() {
 function togglePSess() {
   const sess = document.getElementById('p-sess').value;
   document.getElementById('p-single-count-row').style.display = sess === 'single' ? 'block' : 'none';
+  document.getElementById('p-deduct-row').style.display = sess === '10' ? 'block' : 'none';
+  if (sess !== '10') document.getElementById('p-deduct-check').checked = false;
+  document.getElementById('p-deduct-amount-row').style.display = 'none';
+}
+
+function togglePDeduct() {
+  const checked = document.getElementById('p-deduct-check').checked;
+  document.getElementById('p-deduct-amount-row').style.display = checked ? 'block' : 'none';
 }
 
 function onP4PersonsChange() {
@@ -689,12 +704,20 @@ function calcPrivate() {
   }
   const p = priceData[type];
   const count = sess === 'single' ? (parseInt(document.getElementById('p-single-count').value) || 1) : 1;
-  const amount = sess === 'single' ? p.single * count : p.x10;
+  const deduct = sess === '10' && document.getElementById('p-deduct-check').checked;
+  const baseAmount = sess === 'single' ? p.single * count : p.x10;
+  const amount = deduct ? p.x10 - p.single : baseAmount;
   const typeLabel = { '1v1':'一對一', '1v2':'一對二', '1v3':'一對三' }[type];
   const sessLabel = sess === 'single' ? `單堂×${count}堂` : (coachEn === 'Steven' ? '五堂' : '十堂');
 
+  if (deduct) {
+    document.getElementById('p-deduct-amount-row').textContent = `尾款：$${fmt(p.x10)} - $${fmt(p.single)} = $${fmt(amount)}`;
+  }
+
   let noticeText = `提供繳費資訊給您：\n${coachEn}教練${typeLabel}，\n`;
-  if (sess === 'single' && count === 1) {
+  if (deduct) {
+    noticeText += `\n十堂優惠$${fmt(p.x10)}，已付單堂$${fmt(p.single)}，\n尾款$${fmt(amount)}，\n`;
+  } else if (sess === 'single' && count === 1) {
     if (coachEn === 'Steven') {
       noticeText += `\n單堂$${fmt(p.single)}，\n五堂$${fmt(p.x10)}，\n`;
     } else {
