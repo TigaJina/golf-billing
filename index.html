@@ -118,6 +118,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
     <div class="rg" id="p-deadline-rg">
       <div class="rb on" onclick="pickRb('p-deadline-rg',this,'date')">押日期</div>
       <div class="rb" onclick="pickRb('p-deadline-rg',this,'before')">下次上課前繳交</div>
+      <div class="rb" onclick="pickRb('p-deadline-rg',this,'today')">今日</div>
     </div>
     <input type="hidden" id="p-deadline" value="date">
   </div>
@@ -509,6 +510,8 @@ const coaches = [
   { zh:'楊新宇', en:'Aton',       level:'A',      fulltime:false, english:true  },
   { zh:'秦勉',   en:'Mein',       level:'A',      fulltime:false, english:true  },
   { zh:'黃少驊', en:'Andy黃',     level:'A',      fulltime:false, english:false },
+  { zh:'連嘉鈞', en:'Bronco',     level:'A',      fulltime:false, english:false },
+  { zh:'林遠哲', en:'Leo',        level:'A',      fulltime:false, english:false },
 ];
 
 function populateCoachSelects() {
@@ -648,7 +651,7 @@ function calcPrivate() {
   const sess = document.getElementById('p-sess').value;
   const location = document.getElementById('p-location').value;
   const deadlineMode = document.getElementById('p-deadline').value;
-  const deadlineText = deadlineMode === 'date' ? `*請於${getDeadline()}前完成匯款` : `*請於下次上課前完成匯款`;
+  const deadlineText = deadlineMode === 'date' ? `*請於${getDeadline()}前完成匯款` : deadlineMode === 'today' ? `*請於今日完成匯款` : `*請於下次上課前完成匯款`;
   const bank = getBank(location);
 
   if (type === 'eng') {
