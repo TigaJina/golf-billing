@@ -607,7 +607,9 @@ function setupSettingsAdd(listKey, inputId, btnId, containerId) {
 
 // ---------- rendering: main table ----------
 function sortKey(e) {
-  return e.year * 100000000 + e.month * 1000000 + e.day * 10000 + parseInt(e.time.slice(0, 2)) * 100 + parseInt(e.time.slice(3, 5));
+  const hour = parseInt(e.time.slice(0, 2)) || 0;
+  const minute = parseInt(e.time.slice(3, 5)) || 0;
+  return e.year * 100000000 + e.month * 1000000 + e.day * 10000 + hour * 100 + minute;
 }
 
 function buildTagToggleHTML(entry) {
