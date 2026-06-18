@@ -81,6 +81,7 @@
     font-size: 13px;
     cursor: pointer;
     user-select: none;
+    white-space: nowrap;
     transition: background 0.1s, border-color 0.1s;
   }
   .chip:hover { border-color: var(--text-tertiary); }
@@ -95,6 +96,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    white-space: nowrap;
   }
 
   input[type="date"], input[type="text"] {
@@ -168,6 +170,7 @@
     border: none;
     background: transparent;
     width: 100%;
+    min-width: 100px;
     font-size: 13px;
     font-family: inherit;
     color: var(--text);
@@ -176,7 +179,7 @@
   }
   .student-input:hover { background: var(--bg); }
   .student-input:focus { outline: none; background: var(--bg); box-shadow: 0 0 0 1px var(--teal); }
-  .tag-toggle-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag-toggle-row { display: flex; flex-wrap: nowrap; gap: 4px; }
   .tag-toggle {
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -185,8 +188,21 @@
     cursor: pointer;
     background: var(--bg);
     color: var(--text-tertiary);
+    white-space: nowrap;
   }
   .tag-toggle.on { background: var(--amber-light); color: var(--amber-dark); border-color: #BA7517; }
+  .loc-select {
+    border: 1px solid transparent;
+    background: transparent;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    padding: 2px 4px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .loc-select:hover { background: var(--bg); border-color: var(--border); }
+  .loc-select:focus { outline: none; background: var(--bg); box-shadow: 0 0 0 1px var(--teal); }
 
   .empty-state { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 24px 0; }
 
@@ -585,6 +601,15 @@ function buildTagToggleHTML(entry) {
   }).join('');
 }
 
+function buildLocationSelectHTML(entry) {
+  const options = ['', ...state.locations].map(loc => {
+    const label = loc || '(未選)';
+    const selected = entry.location === loc ? ' selected' : '';
+    return `<option value="${loc}"${selected}>${label}</option>`;
+  }).join('');
+  return `<select class="loc-select" data-loc="${entry.id}">${options}</select>`;
+}
+
 function renderTable() {
   const wrap = document.getElementById('tableWrap');
   if (!state.entries.length) {
@@ -601,7 +626,7 @@ function renderTable() {
     html += `<tr id="row-${e.id}" class="${e.done ? 'row-done' : ''}">
       <td class="col-date">${e.month}/${e.day}(${e.weekday})</td>
       <td class="col-time">${e.time}</td>
-      <td>${e.location}</td>
+      <td>${buildLocationSelectHTML(e)}</td>
       <td>${e.coach}</td>
       <td><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
       <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
@@ -627,6 +652,13 @@ function renderTable() {
     inp.addEventListener('input', () => {
       const entry = state.entries.find(x => x.id === parseInt(inp.dataset.noteid));
       if (entry) { entry.note = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('[data-loc]').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const entry = state.entries.find(x => x.id === parseInt(sel.dataset.loc));
+      if (entry) { entry.location = sel.value; saveState(); }
     });
   });
 
