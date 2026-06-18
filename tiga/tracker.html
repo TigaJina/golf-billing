@@ -156,6 +156,12 @@
     line-height: 1.3;
   }
   tbody tr:hover { background: var(--bg); }
+  .action-cell { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .done-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal); }
+  tr.row-done { color: var(--text-tertiary); background: var(--bg); }
+  tr.row-done .student-input,
+  tr.row-done .note-input { color: var(--text-tertiary); }
+  tr.row-done .tag-toggle.on { opacity: 0.6; }
   .col-date { white-space: nowrap; }
   .col-time { white-space: nowrap; color: var(--text-secondary); }
   .student-input {
@@ -299,6 +305,11 @@ function coachCanonicalNames() {
 
 // ---------- parsing ----------
 const WEEKDAY_CHARS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 function resolveYear(month, day) {
   const now = new Date();
@@ -587,7 +598,7 @@ function renderTable() {
   </tr></thead><tbody>`;
 
   sorted.forEach(e => {
-    html += `<tr id="row-${e.id}">
+    html += `<tr id="row-${e.id}" class="${e.done ? 'row-done' : ''}">
       <td class="col-date">${e.month}/${e.day}(${e.weekday})</td>
       <td class="col-time">${e.time}</td>
       <td>${e.location}</td>
@@ -595,7 +606,10 @@ function renderTable() {
       <td><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
       <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
       <td class="col-note"><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
-      <td><button class="btn-text" data-del="${e.id}" title="刪除">✕</button></td>
+      <td class="action-cell">
+        <input type="checkbox" class="done-checkbox" data-done="${e.id}" title="完成" ${e.done ? 'checked' : ''}>
+        <button class="btn-text" data-del="${e.id}" title="刪除">✕</button>
+      </td>
     </tr>`;
   });
 
@@ -613,6 +627,17 @@ function renderTable() {
     inp.addEventListener('input', () => {
       const entry = state.entries.find(x => x.id === parseInt(inp.dataset.noteid));
       if (entry) { entry.note = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('[data-done]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const entry = state.entries.find(x => x.id === parseInt(cb.dataset.done));
+      if (!entry) return;
+      entry.done = cb.checked;
+      entry.doneAt = cb.checked ? todayStr() : '';
+      document.getElementById(`row-${entry.id}`).classList.toggle('row-done', cb.checked);
+      saveState();
     });
   });
 
@@ -720,6 +745,8 @@ function addEntries() {
     if (state.pendingLoc) result.location = state.pendingLoc;
     state.pendingTags.forEach(t => { if (!result.tags.includes(t)) result.tags.push(t); });
     result.id = nextId++;
+    result.done = false;
+    result.doneAt = '';
     state.entries.push(result);
   });
 
