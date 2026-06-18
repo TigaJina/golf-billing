@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>教練課程追蹤表</title>
+<style>
+  :root {
+    --bg: #FAFAF8;
+    --card: #FFFFFF;
+    --border: #E5E3DC;
+    --text: #1F1E1B;
+    --text-secondary: #6B6960;
+    --text-tertiary: #9A988F;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --teal-dark: #04342C;
+    --coral: #D85A30;
+    --coral-light: #FAECE7;
+    --coral-dark: #4A1B0C;
+    --amber-light: #FAEEDA;
+    --amber-dark: #412402;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 24px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-secondary); margin: 0 0 20px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text-secondary);
+  }
+
+  textarea {
+    width: 100%;
+    min-height: 64px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+  }
+  textarea:focus { outline: none; border-color: var(--teal); }
+
+  .hint {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin: 6px 0 0;
+  }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+  .row-label { font-size: 12px; color: var(--text-secondary); width: 64px; flex-shrink: 0; }
+
+  .chip {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s, border-color 0.1s;
+  }
+  .chip:hover { border-color: var(--text-tertiary); }
+  .chip.active.loc { background: var(--teal-light); color: var(--teal-dark); border-color: var(--teal); }
+  .chip.active.tag { background: var(--amber-light); color: var(--amber-dark); border-color: #BA7517; }
+  .chip-mini {
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  input[type="date"], input[type="text"] {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 13px;
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--text);
+  }
+  input[type="date"]:focus, input[type="text"]:focus { outline: none; border-color: var(--teal); }
+
+  button {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  button:hover { border-color: var(--text-tertiary); }
+  button:active { transform: scale(0.98); }
+  .btn-primary { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .btn-primary:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+  .btn-text { border: none; background: none; color: var(--text-tertiary); padding: 4px 6px; font-size: 16px; line-height: 1; }
+  .btn-text:hover { color: var(--coral); }
+  .btn-small { padding: 4px 10px; font-size: 12px; }
+
+  .top-actions { display: flex; gap: 8px; justify-content: flex-end; margin-bottom: 12px; }
+
+  details > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); list-style: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸ "; font-size: 11px; }
+  details[open] > summary::before { content: "▾ "; }
+  .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 14px; }
+  .settings-col h3 { font-size: 12px; color: var(--text-tertiary); margin: 0 0 8px; font-weight: 600; }
+  .settings-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 28px; }
+  .settings-add { display: flex; gap: 6px; }
+  .settings-add input { flex: 1; min-width: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  #tableWrap { overflow-x: auto; }
+  thead th {
+    text-align: left;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 8px 8px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: var(--bg); }
+  .col-date { white-space: nowrap; }
+  .col-time { white-space: nowrap; color: var(--text-secondary); }
+  .student-input {
+    border: none;
+    background: transparent;
+    width: 100%;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: 6px;
+  }
+  .student-input:hover { background: var(--bg); }
+  .student-input:focus { outline: none; background: var(--bg); box-shadow: 0 0 0 1px var(--teal); }
+  .tag-toggle-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tag-toggle {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 11px;
+    cursor: pointer;
+    background: var(--bg);
+    color: var(--text-tertiary);
+  }
+  .tag-toggle.on { background: var(--amber-light); color: var(--amber-dark); border-color: #BA7517; }
+  .deadline-cell input { width: 118px; }
+
+  .empty-state { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 24px 0; }
+
+  .col-note { min-width: 260px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>教練課程追蹤表</h1>
+  <p class="subtitle">貼上排課訊息,自動拆解成日期、時間、地點、教練、學生與追蹤事項</p>
+
+  <div class="top-actions">
+    <button id="btnImport">匯入</button>
+    <button id="btnExport">匯出</button>
+    <input type="file" id="fileImport" accept=".json" style="display:none">
+  </div>
+
+  <div class="card">
+    <h2>新增紀錄</h2>
+    <textarea id="inputText" placeholder="例如:6/18(四)13:00-14:00@新店 Connie 小明 OK
+可一次貼上多行,每行視為一筆紀錄"></textarea>
+    <p class="hint">格式不符的行會將原文整理寫進「備註」欄位,日期以新增當天為準</p>
+
+    <div class="row">
+      <span class="row-label">地點</span>
+      <div id="locChips"></div>
+    </div>
+    <div class="row">
+      <span class="row-label">追蹤事項</span>
+      <div id="tagChips"></div>
+    </div>
+    <div class="row">
+      <span class="row-label">Deadline</span>
+      <input type="date" id="pendingDeadline">
+      <button id="clearDeadline" class="btn-small">清除</button>
+    </div>
+    <p class="hint">以上選項會套用到本次新增的所有行,新增後會清空</p>
+
+    <div class="row" style="margin-top:16px;">
+      <button class="btn-primary" id="btnAdd">新增</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <details>
+      <summary>管理清單(教練 / 地點 / 追蹤事項)</summary>
+      <div class="settings-grid">
+        <div class="settings-col">
+          <h3>教練名單</h3>
+          <div class="settings-list" id="coachList"></div>
+          <div class="settings-add">
+            <input type="text" id="coachAddInput" placeholder="新增教練名">
+            <button class="btn-small" id="coachAddBtn">新增</button>
+          </div>
+        </div>
+        <div class="settings-col">
+          <h3>地點清單</h3>
+          <div class="settings-list" id="locList"></div>
+          <div class="settings-add">
+            <input type="text" id="locAddInput" placeholder="新增地點">
+            <button class="btn-small" id="locAddBtn">新增</button>
+          </div>
+        </div>
+        <div class="settings-col">
+          <h3>追蹤事項清單</h3>
+          <div class="settings-list" id="tagList"></div>
+          <div class="settings-add">
+            <input type="text" id="tagAddInput" placeholder="新增事項">
+            <button class="btn-small" id="tagAddBtn">新增</button>
+          </div>
+        </div>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>課程清單</h2>
+    <div id="tableWrap"></div>
+  </div>
+</div>
+
+<script>
+// ---------- state ----------
+const DEFAULT_COACH_ALIASES = {
+  'Steven': 'Steven', '翁士棻': 'Steven',
+  'Hunter': 'Hunter', '劉旻煜': 'Hunter',
+  'Max': 'Max', '謝旻軒': 'Max',
+  'Jason': 'Jason', '翁傳傑': 'Jason',
+  'Jerry': 'Jerry', '張哲瑋': 'Jerry',
+  'Jimmy': 'Jimmy', '林晟毓': 'Jimmy',
+  'Jacqueline': 'Jacqueline', '唐瑋安': 'Jacqueline',
+  'Linda': 'Linda', '李佳琳': 'Linda',
+  'Sean': 'Sean', '黃宣邑': 'Sean',
+  'Rick': 'Rick', '陳彥宇': 'Rick',
+  'Cerita': 'Cerita', '林怡韻': 'Cerita',
+  'Connie': 'Connie', '施柔羽': 'Connie',
+  'Peter': 'Peter', '王人立': 'Peter',
+  'Simon': 'Simon', '林煒傑': 'Simon',
+  'Andy鄭': 'Andy鄭', '鄭永旭': 'Andy鄭', 'Andy': 'Andy黃',
+  'Andy黃': 'Andy黃', '黃少驊': 'Andy黃',
+  'Jamie': 'Jamie', '謝佳彧': 'Jamie',
+  'Aton': 'Aton', '小楊': 'Aton', '楊新宇': 'Aton',
+  'Mien': 'Mien', '秦勉': 'Mien',
+  'Hank': 'Hank', '林張恆': 'Hank',
+  'Eric': 'Eric', '韓欣諺': 'Eric',
+};
+
+const state = {
+  coachAliases: { ...DEFAULT_COACH_ALIASES },
+  locations: ['青年', '新店', '益莊', '美麗華'],
+  tags: ['$', '報名表', '入群', '通知', '發票', '續上'],
+  entries: [],
+  pendingLoc: null,
+  pendingTags: new Set(),
+};
+let nextId = 1;
+
+function coachCanonicalNames() {
+  return [...new Set(Object.values(state.coachAliases))];
+}
+
+// ---------- parsing ----------
+const WEEKDAY_CHARS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function resolveYear(month, day) {
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, month - 1, day);
+  const diffDays = (candidate - now) / 86400000;
+  if (diffDays < -200) {
+    year += 1;
+    candidate = new Date(year, month - 1, day);
+  }
+  return { year, candidate };
+}
+
+function normalizeText(s) {
+  return s
+    .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/：/g, ':')
+    .replace(/[－―]/g, '-');
+}
+
+function matchTime(text, dateMatch) {
+  const full = text.match(/(\d{1,2}:\d{2})\s*[-~～至到]\s*(\d{1,2}:\d{2})/);
+  if (full) {
+    return { raw: full[0], start: full[1], end: full[2] };
+  }
+  const stripped = dateMatch ? text.replace(dateMatch[0], '') : text;
+  const short = stripped.match(/\b(\d{1,2})\s*[-~～至到]\s*(\d{1,2})\b/);
+  if (short) {
+    return {
+      raw: short[0],
+      start: short[1].padStart(2, '0') + ':00',
+      end: short[2].padStart(2, '0') + ':00',
+    };
+  }
+  return null;
+}
+
+function parseLine(raw) {
+  const text = normalizeText(raw.trim());
+  if (!text) return null;
+
+  const dateMatch = text.match(/(\d{1,2})\/(\d{1,2})/);
+  const time = matchTime(text, dateMatch);
+  const locMatch = text.match(/@([^\s]+)/);
+  if (!dateMatch || !time || !locMatch) {
+    return { parsed: false, raw: text };
+  }
+
+  const month = parseInt(dateMatch[1], 10);
+  const day = parseInt(dateMatch[2], 10);
+  const { year, candidate } = resolveYear(month, day);
+  const weekday = WEEKDAY_CHARS[candidate.getDay()];
+
+  // strip out date(+optional weekday parens), time, and @location from the line
+  let rest = text;
+  rest = rest.replace(dateMatch[0], '');
+  rest = rest.replace(/^\s*\([^)]*\)/, '');
+  rest = rest.replace(time.raw, '');
+  rest = rest.replace(locMatch[0], '');
+  rest = rest.replace(/(早上|上午|中午|下午|晚上|凌晨)/g, '');
+
+  const tokens = rest.split(/\s+/).filter(Boolean);
+
+  let coach = '';
+  let coachIdx = -1;
+  for (let i = 0; i < tokens.length; i++) {
+    if (Object.prototype.hasOwnProperty.call(state.coachAliases, tokens[i])) {
+      coach = state.coachAliases[tokens[i]];
+      coachIdx = i;
+      break;
+    }
+  }
+  if (coachIdx === -1 && tokens.length) {
+    coach = tokens[0];
+    coachIdx = 0;
+  }
+  const remaining = tokens.filter((_, i) => i !== coachIdx);
+
+  const foundTags = [];
+  const leftover = [];
+  remaining.forEach(tok => {
+    if (state.tags.includes(tok)) foundTags.push(tok);
+    else leftover.push(tok);
+  });
+
+  const locText = locMatch[1];
+  const matchedLoc = state.locations.find(l => l === locText) || locText;
+
+  return {
+    parsed: true,
+    year, month, day, weekday,
+    time: `${time.start}-${time.end}`,
+    location: matchedLoc,
+    coach,
+    student: leftover.join(' '),
+    tags: foundTags,
+    deadline: '',
+    note: '',
+    raw: text,
+  };
+}
+
+// ---------- rendering: quick-select chips ----------
+function renderLocChips() {
+  const wrap = document.getElementById('locChips');
+  wrap.innerHTML = '';
+  state.locations.forEach(loc => {
+    const c = document.createElement('button');
+    c.type = 'button';
+    c.className = 'chip loc' + (state.pendingLoc === loc ? ' active' : '');
+    c.textContent = loc;
+    c.onclick = () => {
+      state.pendingLoc = state.pendingLoc === loc ? null : loc;
+      renderLocChips();
+    };
+    wrap.appendChild(c);
+  });
+}
+
+function renderTagChips() {
+  const wrap = document.getElementById('tagChips');
+  wrap.innerHTML = '';
+  state.tags.forEach(tag => {
+    const c = document.createElement('button');
+    c.type = 'button';
+    c.className = 'chip tag' + (state.pendingTags.has(tag) ? ' active' : '');
+    c.textContent = tag;
+    c.onclick = () => {
+      if (state.pendingTags.has(tag)) state.pendingTags.delete(tag);
+      else state.pendingTags.add(tag);
+      renderTagChips();
+    };
+    wrap.appendChild(c);
+  });
+}
+
+// ---------- rendering: settings lists ----------
+function renderCoachList() {
+  const wrap = document.getElementById('coachList');
+  wrap.innerHTML = '';
+  coachCanonicalNames().forEach(name => {
+    const chip = document.createElement('span');
+    chip.className = 'chip-mini';
+    chip.textContent = name;
+    const x = document.createElement('span');
+    x.textContent = '✕';
+    x.style.cursor = 'pointer';
+    x.style.color = 'var(--text-tertiary)';
+    x.onclick = () => {
+      Object.keys(state.coachAliases).forEach(alias => {
+        if (state.coachAliases[alias] === name) delete state.coachAliases[alias];
+      });
+      renderCoachList();
+      saveState();
+    };
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+}
+
+function setupCoachAdd() {
+  const input = document.getElementById('coachAddInput');
+  const btn = document.getElementById('coachAddBtn');
+  const add = () => {
+    const val = input.value.trim();
+    if (!val || Object.prototype.hasOwnProperty.call(state.coachAliases, val)) { input.value = ''; return; }
+    state.coachAliases[val] = val;
+    input.value = '';
+    renderCoachList();
+    saveState();
+  };
+  btn.onclick = add;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+}
+
+function renderSettingsList(listKey, containerId) {
+  const wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+  state[listKey].forEach((item, idx) => {
+    const chip = document.createElement('span');
+    chip.className = 'chip-mini';
+    chip.textContent = item;
+    const x = document.createElement('span');
+    x.textContent = '✕';
+    x.style.cursor = 'pointer';
+    x.style.color = 'var(--text-tertiary)';
+    x.onclick = () => {
+      state[listKey].splice(idx, 1);
+      renderSettingsList(listKey, containerId);
+      saveState();
+    };
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+}
+
+function renderAllSettingsLists() {
+  renderCoachList();
+  renderSettingsList('locations', 'locList');
+  renderSettingsList('tags', 'tagList');
+  renderLocChips();
+  renderTagChips();
+}
+
+function setupSettingsAdd(listKey, inputId, btnId, containerId) {
+  const input = document.getElementById(inputId);
+  const btn = document.getElementById(btnId);
+  const add = () => {
+    const val = input.value.trim();
+    if (!val || state[listKey].includes(val)) { input.value = ''; return; }
+    state[listKey].push(val);
+    input.value = '';
+    renderSettingsList(listKey, containerId);
+    if (listKey === 'locations') renderLocChips();
+    if (listKey === 'tags') renderTagChips();
+    saveState();
+  };
+  btn.onclick = add;
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+}
+
+// ---------- rendering: main table ----------
+function sortKey(e) {
+  return e.year * 100000000 + e.month * 1000000 + e.day * 10000 + parseInt(e.time.slice(0, 2)) * 100 + parseInt(e.time.slice(3, 5));
+}
+
+function buildTagToggleHTML(entry) {
+  return state.tags.map(tag => {
+    const on = entry.tags.includes(tag);
+    return `<span class="tag-toggle${on ? ' on' : ''}" data-id="${entry.id}" data-tag="${tag}">${tag}</span>`;
+  }).join('');
+}
+
+function renderTable() {
+  const wrap = document.getElementById('tableWrap');
+  if (!state.entries.length) {
+    wrap.innerHTML = '<p class="empty-state">尚無紀錄,於上方貼上排課訊息後按新增</p>';
+    return;
+  }
+  const sorted = [...state.entries].sort((a, b) => sortKey(a) - sortKey(b));
+
+  let html = `<table><thead><tr>
+    <th>日期</th><th>時間</th><th>地點</th><th>教練</th><th>學生</th><th>追蹤事項</th><th>Deadline</th><th class="col-note">備註</th><th></th>
+  </tr></thead><tbody>`;
+
+  sorted.forEach(e => {
+    html += `<tr id="row-${e.id}">
+      <td class="col-date">${e.month}/${e.day}(${e.weekday})</td>
+      <td class="col-time">${e.time}</td>
+      <td>${e.location}</td>
+      <td>${e.coach}</td>
+      <td><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
+      <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
+      <td class="deadline-cell"><input type="date" data-id="${e.id}" value="${e.deadline}"></td>
+      <td class="col-note"><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
+      <td><button class="btn-text" data-del="${e.id}" title="刪除">✕</button></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('.student-input[data-id]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.id));
+      if (entry) { entry.student = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('[data-noteid]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.noteid));
+      if (entry) { entry.note = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('.deadline-cell input').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.id));
+      if (entry) { entry.deadline = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.entries = state.entries.filter(x => x.id !== parseInt(btn.dataset.del));
+      renderTable();
+      saveState();
+    });
+  });
+
+  wrap.querySelectorAll('.tag-toggle').forEach(bindTagToggle);
+}
+
+function bindTagToggle(t) {
+  t.addEventListener('click', () => {
+    const id = parseInt(t.dataset.id);
+    const tag = t.dataset.tag;
+    const entry = state.entries.find(x => x.id === id);
+    if (!entry) return;
+    const i = entry.tags.indexOf(tag);
+    if (i === -1) entry.tags.push(tag); else entry.tags.splice(i, 1);
+    const row = document.querySelector(`.tag-toggle-row[data-row="${id}"]`);
+    row.innerHTML = buildTagToggleHTML(entry);
+    row.querySelectorAll('.tag-toggle').forEach(bindTagToggle);
+    saveState();
+  });
+}
+
+// ---------- persistence (localStorage) ----------
+const STORAGE_KEY = 'tigaTrackerData';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      coachAliases: state.coachAliases,
+      locations: state.locations,
+      tags: state.tags,
+      entries: state.entries,
+      nextId,
+    }));
+  } catch (err) {
+    console.warn('儲存失敗', err);
+  }
+}
+
+function applyImportedData(data) {
+  if (data.coachAliases && typeof data.coachAliases === 'object') {
+    state.coachAliases = data.coachAliases;
+  } else if (Array.isArray(data.coaches)) {
+    state.coachAliases = {};
+    data.coaches.forEach(name => { state.coachAliases[name] = name; });
+  }
+  if (Array.isArray(data.locations)) state.locations = data.locations;
+  if (Array.isArray(data.tags)) state.tags = data.tags;
+  if (Array.isArray(data.entries)) {
+    state.entries = data.entries.map(e => ({ note: '', ...e }));
+  }
+  if (Array.isArray(data.unparsed) && data.unparsed.length) {
+    const today = new Date();
+    data.unparsed.forEach(u => {
+      state.entries.push({
+        id: nextId++,
+        year: today.getFullYear(),
+        month: today.getMonth() + 1,
+        day: today.getDate(),
+        weekday: WEEKDAY_CHARS[today.getDay()],
+        time: '', location: '', coach: '', student: '',
+        tags: [], deadline: '', note: u.raw, raw: u.raw,
+      });
+    });
+  }
+  if (typeof data.nextId === 'number') nextId = Math.max(nextId, data.nextId);
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    applyImportedData(JSON.parse(raw));
+  } catch (err) {
+    console.warn('讀取上次資料失敗', err);
+  }
+}
+
+// ---------- add entries ----------
+function addEntries() {
+  const textarea = document.getElementById('inputText');
+  const lines = textarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+  if (!lines.length) return;
+
+  const deadlineVal = document.getElementById('pendingDeadline').value;
+  const today = new Date();
+
+  lines.forEach(line => {
+    const result = parseLine(line);
+    if (!result) return;
+
+    if (!result.parsed) {
+      result.year = today.getFullYear();
+      result.month = today.getMonth() + 1;
+      result.day = today.getDate();
+      result.weekday = WEEKDAY_CHARS[today.getDay()];
+      result.time = '';
+      result.location = '';
+      result.coach = '';
+      result.student = '';
+      result.tags = [];
+      result.note = result.raw;
+    }
+
+    if (state.pendingLoc) result.location = state.pendingLoc;
+    state.pendingTags.forEach(t => { if (!result.tags.includes(t)) result.tags.push(t); });
+    if (deadlineVal) result.deadline = deadlineVal;
+    result.id = nextId++;
+    state.entries.push(result);
+  });
+
+  textarea.value = '';
+  state.pendingLoc = null;
+  state.pendingTags.clear();
+  document.getElementById('pendingDeadline').value = '';
+  renderLocChips();
+  renderTagChips();
+  renderTable();
+  saveState();
+}
+
+// ---------- import / export ----------
+function exportData() {
+  const data = {
+    coachAliases: state.coachAliases,
+    locations: state.locations,
+    tags: state.tags,
+    entries: state.entries,
+    nextId,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const today = new Date();
+  const stamp = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+  a.href = url;
+  a.download = `課程追蹤表_${stamp}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      applyImportedData(JSON.parse(reader.result));
+      renderAllSettingsLists();
+      renderTable();
+      saveState();
+    } catch (err) {
+      alert('匯入失敗,檔案格式不正確');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---------- wire up ----------
+document.getElementById('btnAdd').addEventListener('click', addEntries);
+document.getElementById('clearDeadline').addEventListener('click', () => {
+  document.getElementById('pendingDeadline').value = '';
+});
+document.getElementById('btnExport').addEventListener('click', exportData);
+document.getElementById('btnImport').addEventListener('click', () => {
+  document.getElementById('fileImport').click();
+});
+document.getElementById('fileImport').addEventListener('change', e => {
+  if (e.target.files[0]) importData(e.target.files[0]);
+  e.target.value = '';
+});
+
+setupCoachAdd();
+setupSettingsAdd('locations', 'locAddInput', 'locAddBtn', 'locList');
+setupSettingsAdd('tags', 'tagAddInput', 'tagAddBtn', 'tagList');
+
+loadState();
+renderAllSettingsLists();
+renderTable();
+</script>
+</body>
+</html>
