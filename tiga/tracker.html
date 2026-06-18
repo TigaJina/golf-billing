@@ -647,7 +647,7 @@ function renderTable() {
       <td class="col-date">${e.month}/${e.day}(${e.weekday})</td>
       <td class="col-time">${e.time}</td>
       <td>${buildLocationSelectHTML(e)}</td>
-      <td>${e.coach}</td>
+      <td><input class="student-input" data-coachid="${e.id}" value="${e.coach.replace(/"/g, '&quot;')}" placeholder="教練"></td>
       <td><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
       <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
       <td class="col-note"><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
@@ -661,6 +661,13 @@ function renderTable() {
     inp.addEventListener('input', () => {
       const entry = state.entries.find(x => x.id === parseInt(inp.dataset.id));
       if (entry) { entry.student = inp.value; saveState(); }
+    });
+  });
+
+  wrap.querySelectorAll('[data-coachid]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.coachid));
+      if (entry) { entry.coach = inp.value; saveState(); }
     });
   });
 
