@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>教練課程追蹤表</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%91%80</text></svg>">
 <style>
   :root {
     --bg: #FAFAF8;
@@ -340,15 +341,58 @@ function matchTime(text, dateMatch) {
   return null;
 }
 
+function parseTigaFormat(text) {
+  const body = text.slice(4); // 去除開頭的 "Tiga"
+  const spaceIdx = body.search(/\s/);
+  if (spaceIdx === -1) return null;
+
+  const coachToken = body.slice(0, spaceIdx).trim();
+  let rest = body.slice(spaceIdx + 1).trim();
+  if (!coachToken || !rest) return null;
+
+  let note = '';
+  const typeMatch = rest.match(/(一對[一二三四五六七八九十\d]+)\s*$/);
+  if (typeMatch) {
+    note = typeMatch[1];
+    rest = rest.slice(0, rest.length - typeMatch[0].length).trim();
+  }
+
+  const students = rest.split(/[,，、]/).map(s => s.trim()).filter(Boolean);
+  if (!students.length) return null;
+
+  return {
+    coach: state.coachAliases[coachToken] || coachToken,
+    student: students.join('、'),
+    note,
+  };
+}
+
 function parseLine(raw) {
   const text = normalizeText(raw.trim());
   if (!text) return null;
+
+  if (text.startsWith('Tiga')) {
+    const tiga = parseTigaFormat(text);
+    if (tiga) {
+      return {
+        hasSchedule: false,
+        time: '', location: '',
+        coach: tiga.coach, student: tiga.student,
+        tags: [], deadline: '', note: tiga.note,
+        raw: text,
+      };
+    }
+  }
 
   const dateMatch = text.match(/(\d{1,2})\/(\d{1,2})/);
   const time = matchTime(text, dateMatch);
   const locMatch = text.match(/@([^\s]+)/);
   if (!dateMatch || !time || !locMatch) {
-    return { parsed: false, raw: text };
+    return {
+      hasSchedule: false,
+      time: '', location: '', coach: '', student: '',
+      tags: [], deadline: '', note: text, raw: text,
+    };
   }
 
   const month = parseInt(dateMatch[1], 10);
@@ -392,7 +436,7 @@ function parseLine(raw) {
   const matchedLoc = state.locations.find(l => l === locText) || locText;
 
   return {
-    parsed: true,
+    hasSchedule: true,
     year, month, day, weekday,
     time: `${time.start}-${time.end}`,
     location: matchedLoc,
@@ -681,17 +725,11 @@ function addEntries() {
     const result = parseLine(line);
     if (!result) return;
 
-    if (!result.parsed) {
+    if (!result.hasSchedule) {
       result.year = today.getFullYear();
       result.month = today.getMonth() + 1;
       result.day = today.getDate();
       result.weekday = WEEKDAY_CHARS[today.getDay()];
-      result.time = '';
-      result.location = '';
-      result.coach = '';
-      result.student = '';
-      result.tags = [];
-      result.note = result.raw;
     }
 
     if (state.pendingLoc) result.location = state.pendingLoc;
