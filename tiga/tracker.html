@@ -224,18 +224,27 @@
 
   .col-note { min-width: 550px; }
 
-  .col-date input[type="date"] {
+  .col-date { position: relative; }
+  .date-btn {
     border: none;
     background: transparent;
     font-size: 13px;
     font-family: inherit;
     color: var(--text);
-    padding: 2px 4px;
+    padding: 2px 6px;
     border-radius: 6px;
     cursor: pointer;
+    white-space: nowrap;
   }
-  .col-date input[type="date"]:hover { background: var(--bg); }
-  .col-date input[type="date"]:focus { outline: none; background: var(--bg); box-shadow: 0 0 0 1px var(--teal); }
+  .date-btn:hover { background: var(--bg); }
+  .date-hidden-input {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    border: none;
+    pointer-events: none;
+  }
 
   .time-btn {
     border: none;
@@ -347,11 +356,11 @@
     <h3>設定時間</h3>
     <div class="modal-row">
       <label>開始</label>
-      <input type="time" id="timeModalStart">
+      <select id="timeModalStart"></select>
     </div>
     <div class="modal-row">
       <label>結束</label>
-      <input type="time" id="timeModalEnd">
+      <select id="timeModalEnd"></select>
     </div>
     <div class="modal-actions">
       <button id="timeModalCancel">取消</button>
@@ -715,7 +724,10 @@ function renderTable() {
         <input type="checkbox" class="done-checkbox" data-done="${e.id}" title="完成" ${e.done ? 'checked' : ''}>
         <button class="btn-text" data-del="${e.id}" title="刪除">✕</button>
       </td>
-      <td class="col-date"><input type="date" data-dateid="${e.id}" value="${isoDate(e)}"></td>
+      <td class="col-date">
+        <button class="date-btn" data-dateid="${e.id}">${e.month}/${e.day}(${e.weekday})</button>
+        <input type="date" class="date-hidden-input" data-dateinput="${e.id}" value="${isoDate(e)}">
+      </td>
       <td class="col-time"><button class="time-btn${e.time ? '' : ' empty'}" data-timeid="${e.id}">${e.time || '設定時間'}</button></td>
       <td>${buildLocationSelectHTML(e)}</td>
       <td><input class="student-input" data-coachid="${e.id}" value="${e.coach.replace(/"/g, '&quot;')}" placeholder="教練"></td>
@@ -749,10 +761,21 @@ function renderTable() {
     });
   });
 
-  wrap.querySelectorAll('[data-dateid]').forEach(inp => {
+  wrap.querySelectorAll('.date-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = wrap.querySelector(`[data-dateinput="${btn.dataset.dateid}"]`);
+      if (input.showPicker) {
+        try { input.showPicker(); } catch (err) { input.focus(); }
+      } else {
+        input.focus();
+      }
+    });
+  });
+
+  wrap.querySelectorAll('[data-dateinput]').forEach(inp => {
     inp.addEventListener('change', () => {
       if (!inp.value) return;
-      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.dateid));
+      const entry = state.entries.find(x => x.id === parseInt(inp.dataset.dateinput));
       if (!entry) return;
       const [y, m, d] = inp.value.split('-').map(Number);
       entry.year = y;
@@ -941,6 +964,20 @@ function importData(file) {
 
 // ---------- time edit modal ----------
 let timeModalEntryId = null;
+
+function halfHourOptionsHTML() {
+  let opts = '<option value="">--</option>';
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      const val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      opts += `<option value="${val}">${val}</option>`;
+    }
+  }
+  return opts;
+}
+
+document.getElementById('timeModalStart').innerHTML = halfHourOptionsHTML();
+document.getElementById('timeModalEnd').innerHTML = halfHourOptionsHTML();
 
 function openTimeModal(id) {
   const entry = state.entries.find(x => x.id === id);
