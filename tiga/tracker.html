@@ -141,8 +141,14 @@
   .settings-add { display: flex; gap: 6px; }
   .settings-add input { flex: 1; min-width: 0; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  #tableWrap { overflow-x: visible; width: 100%; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  #tableWrap {
+    overflow-x: visible;
+    overflow-y: auto;
+    max-height: calc(100vh - 340px);
+    min-height: 200px;
+    width: 100%;
+  }
   thead th {
     text-align: left;
     font-size: 12px;
@@ -151,7 +157,18 @@
     padding: 0 8px 8px;
     border-bottom: 1px solid var(--border);
     white-space: nowrap;
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 2;
   }
+  th.col-date-h { width: 80px; }
+  th.col-time-h { width: 100px; }
+  th.col-loc-h  { width: 80px; }
+  th.col-coach-h { width: 80px; }
+  th.col-student-h { width: 120px; }
+  th.col-tags-h { width: 200px; }
+  th.col-note-h { }
   tbody td {
     padding: 2px 8px;
     border-bottom: 1px solid var(--border);
@@ -213,8 +230,6 @@
   .loc-select:focus { outline: none; background: var(--bg); box-shadow: 0 0 0 1px var(--teal); }
 
   .empty-state { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 24px 0; }
-
-  .col-note { min-width: 120px; }
 
   .col-date { position: relative; }
   .date-btn {
@@ -711,7 +726,14 @@ function renderTable() {
   const sorted = [...state.entries].sort((a, b) => sortKey(a) - sortKey(b));
 
   let html = `<table><thead><tr>
-    <th></th><th>日期</th><th>時間</th><th>地點</th><th>教練</th><th>學生</th><th>追蹤事項</th><th class="col-note">備註</th>
+    <th></th>
+    <th class="col-date-h">日期</th>
+    <th class="col-time-h">時間</th>
+    <th class="col-loc-h">地點</th>
+    <th class="col-coach-h">教練</th>
+    <th class="col-student-h">學生</th>
+    <th class="col-tags-h">追蹤事項</th>
+    <th class="col-note-h">備註</th>
   </tr></thead><tbody>`;
 
   sorted.forEach(e => {
@@ -729,7 +751,7 @@ function renderTable() {
       <td><input class="student-input" data-coachid="${e.id}" value="${e.coach.replace(/"/g, '&quot;')}" placeholder="教練"></td>
       <td><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
       <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
-      <td class="col-note"><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
+      <td><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
     </tr>`;
   });
 
