@@ -142,7 +142,7 @@
   .settings-add input { flex: 1; min-width: 0; }
 
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  #tableWrap { overflow-x: auto; }
+  #tableWrap { overflow-x: visible; width: 100%; }
   thead th {
     text-align: left;
     font-size: 12px;
@@ -164,18 +164,9 @@
     align-items: center;
     gap: 8px;
     white-space: nowrap;
-    position: sticky;
-    left: 0;
-    background: var(--card);
-    z-index: 1;
   }
   tr.row-done .action-cell { background: var(--bg); }
-  thead th:first-child {
-    position: sticky;
-    left: 0;
-    background: var(--card);
-    z-index: 1;
-  }
+  thead th:first-child { }
   .done-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal); }
   tr.row-done { color: var(--text-tertiary); background: var(--bg); }
   tr.row-done .student-input,
@@ -223,7 +214,7 @@
 
   .empty-state { text-align: center; color: var(--text-tertiary); font-size: 13px; padding: 24px 0; }
 
-  .col-note { min-width: 550px; }
+  .col-note { min-width: 120px; }
 
   .col-date { position: relative; }
   .date-btn {
