@@ -175,8 +175,9 @@
   .action-cell {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     white-space: nowrap;
+    width: 1%;
   }
   tr.row-done .action-cell { background: var(--bg); }
   thead th:first-child { }
@@ -212,6 +213,15 @@
     white-space: nowrap;
   }
   .tag-toggle.on { background: var(--amber-light); color: var(--amber-dark); border-color: #BA7517; }
+  .tag-summary { display: flex; flex-wrap: nowrap; gap: 4px; align-items: center; cursor: pointer; }
+  .tag-edit-btn {
+    font-size: 13px;
+    color: var(--text-tertiary);
+    padding: 2px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .tag-edit-btn:hover { background: var(--bg); color: var(--text); }
   .loc-select {
     border: 1px solid transparent;
     background: transparent;
@@ -372,6 +382,16 @@
     <div class="modal-actions">
       <button id="timeModalCancel">取消</button>
       <button class="btn-primary" id="timeModalConfirm">確認</button>
+    </div>
+  </div>
+</div>
+
+<div id="tagModalOverlay" class="modal-overlay" style="display:none;">
+  <div class="modal-box">
+    <h3>追蹤事項</h3>
+    <div id="tagModalChips" class="tag-toggle-row" style="flex-wrap:wrap; gap:8px; margin-bottom:14px;"></div>
+    <div class="modal-actions">
+      <button id="tagModalClose" class="btn-primary">完成</button>
     </div>
   </div>
 </div>
@@ -704,6 +724,12 @@ function buildTagToggleHTML(entry) {
   }).join('');
 }
 
+function buildTagSummaryHTML(entry) {
+  const selected = entry.tags.filter(t => state.tags.includes(t));
+  const chips = selected.map(t => `<span class="tag-toggle on">${t}</span>`).join('');
+  return `<div class="tag-summary" data-tagid="${entry.id}">${chips}<span class="tag-edit-btn">${selected.length ? '…' : '+'}</span></div>`;
+}
+
 function buildLocationSelectHTML(entry) {
   const options = ['', ...state.locations].map(loc => {
     const label = loc || '(未選)';
@@ -746,7 +772,7 @@ function renderTable() {
       <td>${buildLocationSelectHTML(e)}</td>
       <td><input class="student-input" data-coachid="${e.id}" value="${e.coach.replace(/"/g, '&quot;')}" placeholder="教練"></td>
       <td class="col-student-td"><input class="student-input" data-id="${e.id}" value="${e.student.replace(/"/g, '&quot;')}" placeholder="學生名"></td>
-      <td><div class="tag-toggle-row" data-row="${e.id}">${buildTagToggleHTML(e)}</div></td>
+      <td>${buildTagSummaryHTML(e)}</td>
       <td class="col-note-td"><input class="student-input note-input" data-noteid="${e.id}" value="${e.note.replace(/"/g, '&quot;')}" placeholder="備註"></td>
     </tr>`;
   });
@@ -831,7 +857,9 @@ function renderTable() {
     });
   });
 
-  wrap.querySelectorAll('.tag-toggle').forEach(bindTagToggle);
+  wrap.querySelectorAll('.tag-summary').forEach(div => {
+    div.addEventListener('click', () => openTagModal(parseInt(div.dataset.tagid)));
+  });
 }
 
 function bindTagToggle(t) {
@@ -842,9 +870,10 @@ function bindTagToggle(t) {
     if (!entry) return;
     const i = entry.tags.indexOf(tag);
     if (i === -1) entry.tags.push(tag); else entry.tags.splice(i, 1);
-    const row = document.querySelector(`.tag-toggle-row[data-row="${id}"]`);
-    row.innerHTML = buildTagToggleHTML(entry);
-    row.querySelectorAll('.tag-toggle').forEach(bindTagToggle);
+    t.classList.toggle('on', entry.tags.includes(tag));
+    // 更新表格摘要
+    const summary = document.querySelector(`.tag-summary[data-tagid="${id}"]`);
+    if (summary) summary.outerHTML = buildTagSummaryHTML(entry);
     saveState();
   });
 }
@@ -1021,6 +1050,48 @@ document.getElementById('timeModalConfirm').addEventListener('click', () => {
   closeTimeModal();
   renderTable();
   saveState();
+});
+
+// ---------- tag edit modal ----------
+let tagModalEntryId = null;
+
+function openTagModal(id) {
+  const entry = state.entries.find(x => x.id === id);
+  if (!entry) return;
+  tagModalEntryId = id;
+  const chips = document.getElementById('tagModalChips');
+  chips.innerHTML = buildTagToggleHTML(entry);
+  chips.querySelectorAll('.tag-toggle').forEach(t => {
+    t.addEventListener('click', () => {
+      const tag = t.dataset.tag;
+      const i = entry.tags.indexOf(tag);
+      if (i === -1) entry.tags.push(tag); else entry.tags.splice(i, 1);
+      t.classList.toggle('on', entry.tags.includes(tag));
+    });
+  });
+  document.getElementById('tagModalOverlay').style.display = 'flex';
+}
+
+document.getElementById('tagModalClose').addEventListener('click', () => {
+  const entry = state.entries.find(x => x.id === tagModalEntryId);
+  if (entry) {
+    const summary = document.querySelector(`.tag-summary[data-tagid="${tagModalEntryId}"]`);
+    if (summary) {
+      const newDiv = document.createElement('div');
+      newDiv.outerHTML = buildTagSummaryHTML(entry);
+      summary.outerHTML = buildTagSummaryHTML(entry);
+      // rebind
+      const newSummary = document.querySelector(`.tag-summary[data-tagid="${tagModalEntryId}"]`);
+      if (newSummary) newSummary.addEventListener('click', () => openTagModal(tagModalEntryId));
+    }
+    saveState();
+  }
+  tagModalEntryId = null;
+  document.getElementById('tagModalOverlay').style.display = 'none';
+});
+
+document.getElementById('tagModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'tagModalOverlay') document.getElementById('tagModalClose').click();
 });
 
 // ---------- wire up ----------
