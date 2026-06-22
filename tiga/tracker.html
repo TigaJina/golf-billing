@@ -176,10 +176,15 @@
   tbody tr:nth-child(odd):hover { background: #F5F4F0; }
 
   @keyframes newRowFlash {
-    0%   { background-color: #FEF3C7; }
+    0%   { background-color: #FDE68A; }
+    30%  { background-color: #FDE68A; }
     100% { background-color: transparent; }
   }
-  tr.row-new { animation: newRowFlash 2.5s ease-out forwards; }
+  tbody tr.row-new,
+  tbody tr.row-new:nth-child(even),
+  tbody tr.row-new:nth-child(odd) {
+    animation: newRowFlash 3s ease-out forwards;
+  }
   .action-cell {
     display: flex;
     align-items: center;
