@@ -192,13 +192,13 @@
     white-space: nowrap;
   }
   thead th:first-child { width: 52px; }
-  tr.row-done .action-cell { background: transparent; }
+
   thead th:first-child { }
   .done-checkbox { width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal); }
-  tr.row-done { color: var(--text-tertiary) !important; background: #EDEDEB !important; }
-  tr.row-done .student-input,
-  tr.row-done .note-input { color: var(--text-tertiary); }
-  tr.row-done .tag-toggle.on { opacity: 0.6; }
+  tbody tr.row-done, tbody tr.row-done:nth-child(even), tbody tr.row-done:nth-child(odd) { background: #1F1E1B !important; color: #FFFFFF !important; }
+  tr.row-done .student-input, tr.row-done .note-input, tr.row-done .date-btn, tr.row-done .time-btn { color: #CCCCCC !important; background: transparent !important; }
+  tr.row-done .loc-select { color: #CCCCCC; background: #1F1E1B; }
+  tr.row-done .tag-toggle.on { background: #3D3C38 !important; color: #E5C97A !important; border-color: #5A5750 !important; }
   .col-date { white-space: nowrap; }
   .col-time { white-space: nowrap; color: var(--text-secondary); }
   .student-input {
