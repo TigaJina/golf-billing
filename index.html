@@ -395,7 +395,7 @@ Jacqueline教練一對二，
   <div class="card">
     <div class="card-title">九洞代碼設定</div>
     <label>團體九洞代碼</label>
-    <input type="text" id="set-group-code" placeholder="例：26I-004">
+    <input type="text" id="set-group-code" placeholder="例：26I-009">
     <label>教練九洞代碼</label>
     <input type="text" id="set-coach-code" placeholder="例：26T-001">
   </div>
@@ -1272,7 +1272,7 @@ function toggleMgType() {
   document.getElementById('mg-code-personal').style.display = isPersonal ? 'block' : 'none';
   document.getElementById('mg-code-fixed').style.display = isPersonal ? 'none' : 'block';
   if (!isPersonal) {
-    const groupCode = document.getElementById('set-group-code').value || '26I-004';
+    const groupCode = document.getElementById('set-group-code').value || '26I-009';
     const coachCode = document.getElementById('set-coach-code').value || '26T-001';
     document.getElementById('mg-code-display').textContent = `帳目代碼：${type === 'group' ? groupCode : coachCode}`;
   }
@@ -1297,7 +1297,7 @@ function calcMirage() {
     code = document.getElementById('mg-code-input').value.trim();
     if (!code) return showResult('mg-out', '<div class="err">請填寫帳目代碼</div>');
   } else if (type === 'group') {
-    code = document.getElementById('set-group-code').value || '26I-004';
+    code = document.getElementById('set-group-code').value || '26I-009';
   } else {
     code = document.getElementById('set-coach-code').value || '26T-001';
   }
@@ -1327,7 +1327,7 @@ function calcMirage() {
 function initSettings() {
   const groupCode = document.getElementById('set-group-code');
   const coachCode = document.getElementById('set-coach-code');
-  groupCode.value = '26I-004';
+  groupCode.value = '26I-009';
   coachCode.value = '26T-001';
 
   const coachList = document.getElementById('set-coach-list');
@@ -1360,6 +1360,10 @@ function initSettings() {
 }
 
 function exportHTML() {
+  // 讀取設定頁目前輸入值，更新記憶體中的資料
+  const newGroupCode = document.getElementById('set-group-code').value.trim();
+  const newCoachCode = document.getElementById('set-coach-code').value.trim();
+
   const levels = ['A','AA','AAA'];
   const types = ['1v1','1v2','1v3'];
   levels.forEach(level => {
@@ -1375,7 +1379,37 @@ function exportHTML() {
     if (sel) c.level = sel.value;
   });
 
-  const src = document.documentElement.outerHTML;
+  // 將更新後的資料轉回程式碼文字，實際寫回匯出檔案的原始碼
+  // （outerHTML 不會反映 input/select 使用者輸入的值，只有直接改寫文字才會生效）
+  const fmt1v = v => v ? `{ single: ${v.single}, x10: ${v.x10} }` : 'null';
+  const priceLines = ['Steven','Max','Hunter','AAA','AA','A'].map(key => {
+    const p = PRIVATE_PRICE[key];
+    return `  ${key}: { '1v1': ${fmt1v(p['1v1'])}, '1v2': ${fmt1v(p['1v2'])}, '1v3': ${fmt1v(p['1v3'])} }`;
+  }).join(',\n');
+  const newPriceBlock = `const PRIVATE_PRICE = {\n${priceLines}\n};`;
+
+  const coachLines = coaches.map(c =>
+    `  { zh:'${c.zh}', en:'${c.en}', level:'${c.level}', fulltime:${c.fulltime}, english:${c.english} }`
+  ).join(',\n');
+  const newCoachesBlock = `const coaches = [\n${coachLines}\n];`;
+
+  let src = document.documentElement.outerHTML;
+
+  if (newGroupCode) {
+    src = src.replace(/groupCode\.value = '[^']*';/, `groupCode.value = '${newGroupCode}';`);
+    src = src.replace(/const groupCode = document\.getElementById\('set-group-code'\)\.value \|\| '[^']*';/, `const groupCode = document.getElementById('set-group-code').value || '${newGroupCode}';`);
+    src = src.replace(/code = document\.getElementById\('set-group-code'\)\.value \|\| '[^']*';/, `code = document.getElementById('set-group-code').value || '${newGroupCode}';`);
+    src = src.replace(/id="set-group-code" placeholder="例：[^"]*"/, `id="set-group-code" placeholder="例：${newGroupCode}"`);
+  }
+  if (newCoachCode) {
+    src = src.replace(/coachCode\.value = '[^']*';/, `coachCode.value = '${newCoachCode}';`);
+    src = src.replace(/const coachCode = document\.getElementById\('set-coach-code'\)\.value \|\| '[^']*';/, `const coachCode = document.getElementById('set-coach-code').value || '${newCoachCode}';`);
+    src = src.replace(/code = document\.getElementById\('set-coach-code'\)\.value \|\| '[^']*';/, `code = document.getElementById('set-coach-code').value || '${newCoachCode}';`);
+    src = src.replace(/id="set-coach-code" placeholder="例：[^"]*"/, `id="set-coach-code" placeholder="例：${newCoachCode}"`);
+  }
+  src = src.replace(/const PRIVATE_PRICE = \{[\s\S]*?\n\};/, newPriceBlock);
+  src = src.replace(/const coaches = \[[\s\S]*?\n\];/, newCoachesBlock);
+
   const blob = new Blob([src], { type: 'text/html;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
