@@ -121,23 +121,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
     <input type="hidden" id="p-deadline" value="before">
   </div>
   <button class="btn" onclick="calcPrivate()">計算費用 &amp; 產生通知</button>
-  <div id="p-out"><div class="result-card"><div class="amount-label">課程費用</div><div class="amount">$24,000</div><div class="breakdown">教練：唐瑋安（Jacqueline）｜等級：AA<br>課程：一對二｜方案：十堂</div></div><div class="notice-wrap"><div style="font-size:12px;color:#b45309;background:#fffbe6;border:1px solid #ffe58f;border-radius:6px;padding:8px 12px;margin-bottom:8px;">⚠️ 請注意繳費日期是否在上課日期之前</div><div style="position:relative;"><button class="copy-btn" onclick="copyText('p-notice')">複製</button><div class="notice-text" id="p-notice">提供繳費資訊給您：
-Jacqueline教練一對二，
-
-單堂$2,900，
-十堂$24,000，
-(課程費用不含球資)
-課程期限為6個月，相關課程資訊請參閱課程須知。
-
-彰化銀行(009) 復興分行
-5258 01300360 00
-<strong style="color:#8b1a1a;">戶名：台灣高爾夫經紀事業股份有限公司</strong>
-
-<strong>*請於下次上課前完成匯款</strong>
-*匯款後，再麻煩通知匯款帳號後五碼，以利查帳，謝謝您</div></div></div><div style="font-size:12px;color:#666;margin:12px 0 4px;">合約通知</div><div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('contract-inline-notice')">複製</button><div class="notice-text" id="contract-inline-notice">Jacqueline教練一對二私人課程10堂合約已建立，
-提醒此份合約課程期限為6個月(2026/07/01-2026/12/27)
-再麻煩留意並於期限內使用完畢。
-*若課程期限內未上完可以向行政申請展延</div></div></div></div>
+  <div id="p-out"></div>
 </div>
 
 <!-- Plus課程 -->
@@ -914,7 +898,7 @@ function calcPrivate() {
     const breakdown = `教練：${coach.zh}（${coachEn}）｜英文高爾夫課程一對一｜方案：${sessLabel}`;
     let html = resultCard('課程費用', amount, breakdown);
     html += noticeWrap('p-notice', noticeText);
-    html += makeContractNotice(coachEn, `英文高爾夫課程一對一${count === 1 && sess !== '10' ? '1堂' : sess === '10' ? '10堂' : count + '堂'}`, 180);
+    html += makeContractNotice(coachEn, `英文高爾夫課程一對一${count === 1 && sess !== '10' ? '1堂' : sess === '10' ? '10堂' : count + '堂'}`, 180, 'p-contract-notice');
     return showResult('p-out', html);
   }
 
@@ -935,7 +919,7 @@ function calcPrivate() {
     const breakdown = `教練：${coach.zh}（${coachEn}）｜等級：${coach.level}<br>課程：一對${persons}（${size}人區間）｜方案：${sessLabel}`;
     let html = resultCard('課程費用', amount, breakdown);
     html += noticeWrap('p-notice', noticeText);
-    html += makeContractNotice(coachEn, `一對${persons}${sess === '10' ? '10堂' : count + '堂'}`, 180);
+    html += makeContractNotice(coachEn, `一對${persons}${sess === '10' ? '10堂' : count + '堂'}`, 180, 'p-contract-notice');
     return showResult('p-out', html);
   }
 
@@ -983,7 +967,7 @@ function calcPrivate() {
   let html = resultCard('課程費用', amount, breakdown);
   html += noticeWrap('p-notice', noticeText);
   const sessionCount = sess === '10' ? (coachEn === 'Steven' ? '5堂' : '10堂') : `${count}堂`;
-  html += makeContractNotice(coachEn, `${typeLabel}私人課程${sessionCount}`, 180);
+  html += makeContractNotice(coachEn, `${typeLabel}私人課程${sessionCount}`, 180, 'p-contract-notice');
   showResult('p-out', html);
 }
 
@@ -1005,7 +989,7 @@ function calcPlus() {
   const breakdown = `等級：${level}｜課程：${typeLabel}`;
   let html = resultCard('課程費用', amount, breakdown);
   html += noticeWrap('plus-notice', noticeText);
-  html += makeContractNotice(coachStr || '', `${typeLabel}私人課程Plus+`, 180);
+  html += makeContractNotice(coachStr || '', `${typeLabel}私人課程Plus+`, 180, 'plus-contract-notice');
   showResult('plus-out', html);
 }
 
@@ -1125,18 +1109,18 @@ function calcSwing() {
 
   let html = resultCard('課程費用', amount, `課程類型：${typeLabel}｜固定5堂`);
   html += noticeWrap('sw-notice', noticeText);
-  html += makeContractNotice(coachStr || '', `揮桿基礎課程五堂課 ${typeLabel}`, 90);
+  html += makeContractNotice(coachStr || '', `揮桿基礎課程五堂課 ${typeLabel}`, 90, 'sw-contract-notice');
   showResult('sw-out', html);
 }
 
-function makeContractNotice(coachEn, courseLabel, days) {
+function makeContractNotice(coachEn, courseLabel, days, noticeId) {
   const today = new Date();
   const startStr = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
   const endStr = addDays(startStr, days - 1);
   const monthLabel = days === 90 ? '3' : '6';
   const text = `${coachEn}教練${courseLabel}合約已建立，\n提醒此份合約課程期限為${monthLabel}個月(${startStr}-${endStr})\n再麻煩留意並於期限內使用完畢。\n*若課程期限內未上完可以向行政申請展延`;
   return `<div style="font-size:12px;color:#666;margin:12px 0 4px;">合約通知</div>`
-    + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('contract-inline-notice')">複製</button><div class="notice-text" id="contract-inline-notice">${text}</div></div></div>`;
+    + `<div class="notice-wrap"><div style="position:relative;"><button class="copy-btn" onclick="copyText('${noticeId}')">複製</button><div class="notice-text" id="${noticeId}">${text}</div></div></div>`;
 }
 
 // ===== 退費/轉約 =====
