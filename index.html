@@ -208,7 +208,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
     <input type="number" id="g9-persons" min="1" max="10" value="1" placeholder="人數" oninput="onG9PersonsChange()">
     <div id="g9-persons-hint" style="font-size:12px;color:#888;margin-top:-10px;margin-bottom:12px;">九洞通常最多4人</div>
     <label>下場日期</label>
-    <input type="text" id="g9-date" placeholder="例：4/15" oninput="sanitizeDateInput(this)" onblur="autoFillWeekday('g9-date')">
+    <input type="text" id="g9-date" placeholder="例：4/15" onblur="autoFillWeekday('g9-date')">
     <div id="g9-extra-fields" style="display:none">
       <label>教練等級</label>
       <div class="rg" id="g9-level-rg">
@@ -352,7 +352,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
   <div class="card">
     <div class="card-title">預約資訊</div>
     <label>下場日期</label>
-    <input type="text" id="mg-date" placeholder="例：4/17" oninput="sanitizeDateInput(this)" onblur="autoFillWeekday('mg-date')">
+    <input type="text" id="mg-date" placeholder="例：4/17" onblur="autoFillWeekday('mg-date')">
     <label>教練</label>
     <select id="mg-coach"><option value="">請選擇教練</option><option value="Steven">翁士棻（Steven） EN</option><option value="Max">謝旻軒（Max） EN</option><option value="Hunter">劉旻煜（Hunter）</option><option value="Jason">翁傳傑（Jason） ★</option><option value="Jerry">張哲瑋（Jerry） ★</option><option value="Jimmy">林晟毓（Jimmy）</option><option value="Eric">韓欣諺（Eric）</option><option value="Jacqueline">唐瑋安（Jacqueline） ★ EN</option><option value="Linda">李佳琳（Linda） ★</option><option value="Sean">黃宣邑（Sean） ★</option><option value="Simon">林煒傑（Simon） EN</option><option value="Jaime">謝佳彧（Jaime） EN</option><option value="Connie">施柔羽（Connie）</option><option value="Rick">陳彥宇（Rick）</option><option value="Cerita">林怡韻（Cerita）</option><option value="Peter">王人立（Peter）</option><option value="Andy鄭">鄭永旭（Andy鄭）</option><option value="Aton">楊新宇（Aton） EN</option><option value="Mein">秦勉（Mein） EN</option><option value="Andy黃">黃少驊（Andy黃）</option><option value="Bronco">連嘉鈞（Bronco）</option><option value="Leo">林遠哲（Leo）</option></select>
     <label>帳目代碼</label>
@@ -1213,11 +1213,6 @@ function calcContract() {
   let html = `<div class="result-card"><div class="amount-label">合約期限</div><div class="amount" style="font-size:20px">${startStr} ～ ${endStr}</div><div class="breakdown">教練：${coach.zh}（${coachEn}）｜${courseLabel}</div></div>`;
   html += noticeWrap('ct-notice', noticeText);
   showResult('ct-out', html);
-}
-
-function sanitizeDateInput(el) {
-  const cleaned = el.value.replace(/[^0-9\/]/g, '');
-  if (cleaned !== el.value) el.value = cleaned;
 }
 
 function isDateReady(val) {
