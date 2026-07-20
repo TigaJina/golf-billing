@@ -41,6 +41,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
 .copy-btn:hover { background: #3d6b4b; }
 .note-box { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 7px; padding: 10px 14px; font-size: 12px; color: #7a5a00; margin-bottom: 14px; }
 .err { background: #fff0f0; border: 1px solid #f5c6c6; border-radius: 7px; padding: 12px 14px; color: #c0392b; font-size: 13px; margin-top: 12px; }
+.input-error { border-color: #c0392b !important; background: #fff5f5; }
 .loading { text-align: center; padding: 50px 20px; color: #888; }
 .coach-tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; margin-left: 4px; }
 .tag-en { background: #e3f0e8; color: #2d6b3a; }
@@ -207,7 +208,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
     <input type="number" id="g9-persons" min="1" max="10" value="1" placeholder="人數" oninput="onG9PersonsChange()">
     <div id="g9-persons-hint" style="font-size:12px;color:#888;margin-top:-10px;margin-bottom:12px;">九洞通常最多4人</div>
     <label>下場日期</label>
-    <input type="text" id="g9-date" placeholder="例：4/15" onblur="autoFillWeekday('g9-date')">
+    <input type="text" id="g9-date" placeholder="例：4/15" oninput="sanitizeDateInput(this)" onblur="autoFillWeekday('g9-date')">
     <div id="g9-extra-fields" style="display:none">
       <label>教練等級</label>
       <div class="rg" id="g9-level-rg">
@@ -351,7 +352,7 @@ select:focus, input:focus { outline: none; border-color: #4a7c59; }
   <div class="card">
     <div class="card-title">預約資訊</div>
     <label>下場日期</label>
-    <input type="text" id="mg-date" placeholder="例：4/17" onblur="autoFillWeekday('mg-date')">
+    <input type="text" id="mg-date" placeholder="例：4/17" oninput="sanitizeDateInput(this)" onblur="autoFillWeekday('mg-date')">
     <label>教練</label>
     <select id="mg-coach"><option value="">請選擇教練</option><option value="Steven">翁士棻（Steven） EN</option><option value="Max">謝旻軒（Max） EN</option><option value="Hunter">劉旻煜（Hunter）</option><option value="Jason">翁傳傑（Jason） ★</option><option value="Jerry">張哲瑋（Jerry） ★</option><option value="Jimmy">林晟毓（Jimmy）</option><option value="Eric">韓欣諺（Eric）</option><option value="Jacqueline">唐瑋安（Jacqueline） ★ EN</option><option value="Linda">李佳琳（Linda） ★</option><option value="Sean">黃宣邑（Sean） ★</option><option value="Simon">林煒傑（Simon） EN</option><option value="Jaime">謝佳彧（Jaime） EN</option><option value="Connie">施柔羽（Connie）</option><option value="Rick">陳彥宇（Rick）</option><option value="Cerita">林怡韻（Cerita）</option><option value="Peter">王人立（Peter）</option><option value="Andy鄭">鄭永旭（Andy鄭）</option><option value="Aton">楊新宇（Aton） EN</option><option value="Mein">秦勉（Mein） EN</option><option value="Andy黃">黃少驊（Andy黃）</option><option value="Bronco">連嘉鈞（Bronco）</option><option value="Leo">林遠哲（Leo）</option></select>
     <label>帳目代碼</label>
@@ -1055,6 +1056,7 @@ function calcGolf9() {
   const persons = parseInt(document.getElementById('g9-persons').value) || 1;
   const date = document.getElementById('g9-date').value;
   if (!date) return showResult('g9-out', '<div class="err">請填寫下場日期</div>');
+  if (!isDateReady(date)) return showResult('g9-out', '<div class="err">下場日期格式錯誤，請輸入「月/日」（例：7/22）並確認日期正確存在</div>');
 
   const fieldFee = persons * G9_FIELD_FEE;
   let totalAmount = fieldFee;
@@ -1213,18 +1215,33 @@ function calcContract() {
   showResult('ct-out', html);
 }
 
+function sanitizeDateInput(el) {
+  const cleaned = el.value.replace(/[^0-9\/]/g, '');
+  if (cleaned !== el.value) el.value = cleaned;
+}
+
+function isDateReady(val) {
+  return /^\d{1,2}\/\d{1,2}\([日一二三四五六]\)$/.test((val || '').trim());
+}
+
 function autoFillWeekday(inputId) {
   const el = document.getElementById(inputId);
-  let val = el.value.trim();
-  if (!val) return;
-  if (/\(.\)/.test(val)) return;
-  const match = val.match(/^(\d{1,2})\/(\d{1,2})$/);
-  if (!match) return;
+  const base = el.value.trim().replace(/\([日一二三四五六]\)$/, '');
+  el.classList.remove('input-error');
+  if (!base) return;
+  const match = base.match(/^(\d{1,2})\/(\d{1,2})$/);
   const year = new Date().getFullYear();
-  const d = new Date(year, parseInt(match[1]) - 1, parseInt(match[2]));
-  if (isNaN(d.getTime())) return;
+  const m = match ? parseInt(match[1]) : 0;
+  const d = match ? parseInt(match[2]) : 0;
+  const date = match ? new Date(year, m - 1, d) : null;
+  const valid = match && m >= 1 && m <= 12 && d >= 1 && date.getMonth() === m - 1 && date.getDate() === d;
+  if (!valid) {
+    el.value = base;
+    el.classList.add('input-error');
+    return;
+  }
   const weekdays = ['日','一','二','三','四','五','六'];
-  el.value = `${match[1]}/${match[2]}(${weekdays[d.getDay()]})`;
+  el.value = `${m}/${d}(${weekdays[date.getDay()]})`;
 }
 
 function autoFillDiscount() {
@@ -1271,6 +1288,7 @@ function calcMirage() {
   const studentsRaw = document.getElementById('mg-students').value.trim();
 
   if (!date) return showResult('mg-out', '<div class="err">請填寫下場日期</div>');
+  if (!isDateReady(date)) return showResult('mg-out', '<div class="err">下場日期格式錯誤，請輸入「月/日」（例：7/22）並確認日期正確存在</div>');
   if (!coachEn) return showResult('mg-out', '<div class="err">請選擇教練</div>');
   if (!studentsRaw) return showResult('mg-out', '<div class="err">請填寫學員名單</div>');
 
