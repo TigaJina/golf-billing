@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tiga 第一堂上課時間通知產生器</title>
+<title>Tiga 上課訊息產生器</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
@@ -214,12 +214,12 @@
   <div class="card">
     <div class="card-title">第一堂課時間</div>
     <div class="mode-tabs">
-      <button class="mode-tab active" onclick="switchMode('manual')">手動輸入</button>
-      <button class="mode-tab" onclick="switchMode('paste')">貼上解析</button>
+      <button class="mode-tab" onclick="switchMode('manual')">手動輸入</button>
+      <button class="mode-tab active" onclick="switchMode('paste')">貼上解析</button>
     </div>
 
     <!-- 手動模式 -->
-    <div class="mode-panel active" id="panelManual">
+    <div class="mode-panel" id="panelManual">
       <div class="fields-row">
         <div class="field"><label>月</label><input type="number" id="month" min="1" max="12" placeholder="4"></div>
         <div class="field"><label>日</label><input type="number" id="day" min="1" max="31" placeholder="14"></div>
@@ -231,7 +231,7 @@
     </div>
 
     <!-- 貼上模式 -->
-    <div class="mode-panel" id="panelPaste">
+    <div class="mode-panel active" id="panelPaste">
       <textarea id="pasteInput" placeholder="貼上排程文字，例如：
 7/4 (六) 9:00-11:00青年公園
 7/5(日)9:00-11:00青年公園
@@ -244,7 +244,7 @@
   </div>
 
   <!-- 暫定時間（手動模式用） -->
-  <div class="card" id="extraCard">
+  <div class="card" id="extraCard" style="display:none;">
     <label class="extra-toggle">
       <input type="checkbox" id="extraToggle" onchange="toggleExtra()">
       新增暫定後續上課時間
@@ -270,7 +270,14 @@
   const WEEKDAYS = ['（日）','（一）','（二）','（三）','（四）','（五）','（六）'];
   let selectedLoc = '青年';
   let extraRowCount = 0;
-  let currentMode = 'manual';
+  let currentMode = 'paste';
+
+  // 全形轉半形
+  function toHalfWidth(str) {
+    return str
+      .replace(/[！-～]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+      .replace(/　/g, ' ');
+  }
   let parsedData = null; // { first, extras[] } from paste mode
 
   // 地點按鈕
@@ -434,7 +441,7 @@
     const raw = document.getElementById('pasteInput').value.trim();
     if (!raw) { document.getElementById('pasteError').textContent = '請貼上排程文字。'; return; }
 
-    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = raw.split('\n').map(l => toHalfWidth(l.trim())).filter(Boolean);
     const parsed = [];
     for (const line of lines) {
       const r = parseLine(line);
