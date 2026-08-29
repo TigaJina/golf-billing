@@ -419,7 +419,20 @@
           startH = parseInt(simpleTime[1]); startM = 0;
           endH   = parseInt(simpleTime[2]); endM   = 0;
         } else {
-          return null;
+          // 只有開始時間 HH:MM → 結束 +1 小時
+          const startFull = line.match(/(\d{1,2}):(\d{2})/);
+          // 只有開始整點 HH（需在日期之後，避免誤抓月份日期數字）
+          const afterDate = line.slice(dateMatch.index + dateMatch[0].length);
+          const startSimple = afterDate.match(/(?<!\d)(\d{1,2})(?!\s*[-－~～\d:\/])/);
+          if (startFull) {
+            startH = parseInt(startFull[1]); startM = parseInt(startFull[2]);
+            endH   = startH + 1;            endM   = startM;
+          } else if (startSimple && parseInt(startSimple[1]) <= 23) {
+            startH = parseInt(startSimple[1]); startM = 0;
+            endH   = startH + 1;              endM   = 0;
+          } else {
+            return null;
+          }
         }
       }
     }
